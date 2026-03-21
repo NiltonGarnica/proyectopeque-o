@@ -9,7 +9,7 @@ app.use(express.json());
 console.log("Iniciando servidor...");
 
 // 🔗 CONEXIÓN MONGODB ATLAS
-mongoose.connect("mongodb+srv://admin:1234@cluster0.leygl9d.mongodb.net/actividadDB")
+mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("MongoDB conectado"))
 .catch(err => console.log("Error Mongo:", err));
 
