@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -9,6 +10,7 @@ app.use(express.json());
 console.log("Iniciando servidor...");
 
 // 🔗 CONEXIÓN MONGODB ATLAS
+console.log(process.env.MONGO_URI);
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("MongoDB conectado"))
 .catch(err => console.log("Error Mongo:", err));
@@ -101,6 +103,8 @@ app.get("/actividades/:userId", async (req, res) => {
 });
 
 // 🚀 SERVIDOR
-app.listen(3000, () => {
-  console.log("Servidor corriendo en http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Servidor corriendo en puerto " + PORT);
 });
