@@ -20,7 +20,7 @@ export class DashboardComponent implements OnInit {
   }
 
   crearActividad() {
-    this.http.post('http://localhost:3000/actividad', {
+    this.http.post('https://proyectopeque-o.onrender.com', {
       texto: this.texto,
       userId: this.userId
     }).subscribe(() => {
@@ -30,7 +30,7 @@ export class DashboardComponent implements OnInit {
   }
 
   cargarActividades() {
-    this.http.get<any[]>(`http://localhost:3000/actividades/${this.userId}`)
+    this.http.get<any[]>(`https://proyectopeque-o.onrender.com/actividades/${this.userId}`)
       .subscribe(res => {
         this.actividades = res;
       });
