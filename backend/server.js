@@ -10,7 +10,6 @@ app.use(express.json());
 console.log("Iniciando servidor...");
 
 // 🔗 CONEXIÓN MONGODB ATLAS
-console.log(process.env.MONGO_URI);
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("MongoDB conectado"))
 .catch(err => console.log("Error Mongo:", err));
