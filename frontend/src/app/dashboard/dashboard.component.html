@@ -1,0 +1,12 @@
+<div class="container">
+  <h2>Dashboard</h2>
+
+  <input [(ngModel)]="texto" placeholder="Nueva actividad">
+  <button (click)="crearActividad()">Agregar</button>
+
+  <ul>
+    <li *ngFor="let act of actividades">
+      {{ act.texto }}
+    </li>
+  </ul>
+</div>
