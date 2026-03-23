@@ -15,7 +15,7 @@ export class Register {
   nombre = '';
   correo = '';
   telefono = '';
-  contraseña = '';
+  password = '';
   confirmar = '';
   error = '';
   exito = '';
@@ -26,7 +26,7 @@ export class Register {
     this.error = '';
     this.exito = '';
 
-    if (this.contraseña !== this.confirmar) {
+    if (this.password !== this.confirmar) {
       this.error = 'Las contraseñas no coinciden';
       return;
     }
@@ -35,7 +35,7 @@ export class Register {
       nombre: this.nombre,
       correo: this.correo,
       telefono: this.telefono,
-      contraseña: this.contraseña
+      contraseña: this.password
     }).subscribe({
       next: () => {
         this.exito = 'Cuenta creada. Redirigiendo...';
