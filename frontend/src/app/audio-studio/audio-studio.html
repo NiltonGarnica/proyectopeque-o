@@ -49,22 +49,44 @@
       </div>
     </div>
 
-    <div class="pista-item" *ngFor="let p of pistas; let i = index">
-      <div class="pista-nombre">
-        <span class="pista-dot" [class.muted]="!p.activa"></span>
-        {{ p.nombre }}
+    <div class="pista-wrapper" *ngFor="let p of pistas; let i = index">
+      <div class="pista-item">
+        <div class="pista-nombre">
+          <span class="pista-dot" [class.muted]="!p.activa"></span>
+          {{ p.nombre }}
+        </div>
+        <div class="pista-acciones">
+          <button class="btn-preview" (click)="previsualizarPista(p.url)" title="Vista previa">👁</button>
+          <button class="btn-mute" [class.muted]="!p.activa" (click)="togglePista(p)"
+            title="{{ p.activa ? 'Silenciar' : 'Activar' }}">
+            {{ p.activa ? '🔊' : '🔇' }}
+          </button>
+          <button class="btn-fx" [class.active]="p.mostrarEfectos" (click)="p.mostrarEfectos = !p.mostrarEfectos" title="Efectos">🎛</button>
+          <button class="btn-dup" (click)="duplicarPista(p)" title="Duplicar pista">📋</button>
+          <button class="btn-del" (click)="eliminarPista(i)" title="Eliminar pista">✕</button>
+        </div>
       </div>
-      <div class="pista-acciones">
-        <button class="btn-preview" (click)="previsualizarPista(p.url)" title="Vista previa">👁</button>
-        <button
-          class="btn-mute"
-          [class.muted]="!p.activa"
-          (click)="togglePista(p)"
-          title="{{ p.activa ? 'Silenciar' : 'Activar' }}">
-          {{ p.activa ? '🔊' : '🔇' }}
-        </button>
-        <button class="btn-dup" (click)="duplicarPista(p)" title="Duplicar pista">📋</button>
-        <button class="btn-del" (click)="eliminarPista(i)" title="Eliminar pista">✕</button>
+
+      <div class="efectos-panel" *ngIf="p.mostrarEfectos">
+        <div class="efecto-row">
+          <label>Vol</label>
+          <input type="range" min="0" max="2" step="0.05" [(ngModel)]="p.efectos.volumen">
+          <span>{{ (p.efectos.volumen * 100).toFixed(0) }}%</span>
+        </div>
+        <div class="efecto-row">
+          <label>Graves</label>
+          <input type="range" min="-12" max="12" step="1" [(ngModel)]="p.efectos.graves">
+          <span>{{ p.efectos.graves > 0 ? '+' : '' }}{{ p.efectos.graves }}dB</span>
+        </div>
+        <div class="efecto-row">
+          <label>Agudos</label>
+          <input type="range" min="-12" max="12" step="1" [(ngModel)]="p.efectos.agudos">
+          <span>{{ p.efectos.agudos > 0 ? '+' : '' }}{{ p.efectos.agudos }}dB</span>
+        </div>
+        <div class="efecto-toggles">
+          <button [class.active]="p.efectos.eco" (click)="p.efectos.eco = !p.efectos.eco">🔁 Eco</button>
+          <button [class.active]="p.efectos.reverb" (click)="p.efectos.reverb = !p.efectos.reverb">🏛 Reverb</button>
+        </div>
       </div>
     </div>
 

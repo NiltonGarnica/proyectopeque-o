@@ -4,11 +4,21 @@ import { AuthService } from '../services/auth.service';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
+interface EfectosPista {
+  volumen: number;
+  eco: boolean;
+  reverb: boolean;
+  graves: number;
+  agudos: number;
+}
+
 interface Pista {
   url: string;
   nombre: string;
   activa: boolean;
   esMezcla?: boolean;
+  mostrarEfectos?: boolean;
+  efectos: EfectosPista;
 }
 
 interface MezclaGuardada {
@@ -37,6 +47,7 @@ export class AudioStudio implements OnInit, OnDestroy {
   mezclas: MezclaGuardada[] = [];
 
   private audioElements: HTMLAudioElement[] = [];
+  private audioContext: AudioContext | null = null;
 
   constructor(public auth: AuthService, private zone: NgZone, private http: HttpClient) {}
 
@@ -48,14 +59,23 @@ export class AudioStudio implements OnInit, OnDestroy {
     this.detenerTodas();
   }
 
+  private efectosDefault(): EfectosPista {
+    return { volumen: 1, eco: false, reverb: false, graves: 0, agudos: 0 };
+  }
+
   onAudioUrl(url: string) {
     const num = this.pistas.length + 1;
-    this.pistas.push({ url, nombre: `Pista ${num}`, activa: true });
+    this.pistas.push({ url, nombre: `Pista ${num}`, activa: true, efectos: this.efectosDefault() });
   }
 
   duplicarPista(pista: Pista) {
     const num = this.pistas.length + 1;
-    this.pistas.push({ url: pista.url, nombre: `Pista ${num} (copia de ${pista.nombre})`, activa: true });
+    this.pistas.push({
+      url: pista.url,
+      nombre: `Pista ${num} (copia de ${pista.nombre})`,
+      activa: true,
+      efectos: { ...pista.efectos }
+    });
   }
 
   togglePista(pista: Pista) {
@@ -74,13 +94,42 @@ export class AudioStudio implements OnInit, OnDestroy {
     this.playerSrc = url;
   }
 
+  subirArchivo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    input.value = '';
+
+    this.subiendoArchivo = true;
+    this.errorArchivo = '';
+
+    const formData = new FormData();
+    formData.append('audio', file, file.name);
+
+    this.http.post<any>(`${API}/api/upload-audio`, formData).subscribe({
+      next: (res) => {
+        this.subiendoArchivo = false;
+        const nombre = file.name.replace(/\.[^.]+$/, '') || `Pista ${this.pistas.length + 1}`;
+        this.pistas.push({ url: res.url, nombre, activa: true, efectos: this.efectosDefault() });
+      },
+      error: () => {
+        this.subiendoArchivo = false;
+        this.errorArchivo = 'Error al subir el archivo';
+      }
+    });
+  }
+
   async mezclarYReproducir() {
     this.detenerTodas();
     const activas = this.pistas.filter(p => p.activa);
     if (activas.length === 0) return;
 
+    const ctx = new AudioContext();
+    this.audioContext = ctx;
+
     this.audioElements = activas.map(p => {
       const a = new Audio(p.url);
+      a.crossOrigin = 'anonymous';
       a.preload = 'auto';
       return a;
     });
@@ -92,6 +141,11 @@ export class AudioStudio implements OnInit, OnDestroy {
         a.load();
       })
     ));
+
+    activas.forEach((pista, i) => {
+      const source = ctx.createMediaElementSource(this.audioElements[i]);
+      this.aplicarEfectos(ctx, source, pista.efectos);
+    });
 
     this.audioElements.forEach(a => a.play());
     this.reproduciendo = true;
@@ -105,6 +159,8 @@ export class AudioStudio implements OnInit, OnDestroy {
     this.zone.run(() => {
       this.reproduciendo = false;
       this.audioElements = [];
+      ctx.close();
+      this.audioContext = null;
     });
   }
 
@@ -112,6 +168,10 @@ export class AudioStudio implements OnInit, OnDestroy {
     this.audioElements.forEach(a => { a.pause(); a.currentTime = 0; });
     this.audioElements = [];
     this.reproduciendo = false;
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
   }
 
   async exportarMezcla() {
@@ -124,7 +184,6 @@ export class AudioStudio implements OnInit, OnDestroy {
     try {
       const audioCtx = new AudioContext();
 
-      // Descargar y decodificar todas las pistas activas
       const buffers = await Promise.all(activas.map(async p => {
         const res = await fetch(p.url, { mode: 'cors' });
         if (!res.ok) throw new Error(`Error al descargar pista: HTTP ${res.status}`);
@@ -142,13 +201,12 @@ export class AudioStudio implements OnInit, OnDestroy {
 
       this.mensajeExport = 'Mezclando pistas...';
 
-      // Renderizar con OfflineAudioContext
       const offline = new OfflineAudioContext(numChannels, maxFrames, sampleRate);
 
-      buffers.forEach(buf => {
+      buffers.forEach((buf, i) => {
         const src = offline.createBufferSource();
         src.buffer = buf;
-        src.connect(offline.destination);
+        this.aplicarEfectos(offline, src, activas[i].efectos);
         src.start(0);
       });
 
@@ -156,17 +214,14 @@ export class AudioStudio implements OnInit, OnDestroy {
 
       this.mensajeExport = 'Generando archivo...';
 
-      // Convertir a WAV
       const wavBlob = this.audioBufferToWav(rendered);
 
-      // Descargar localmente
       const link = document.createElement('a');
       link.href = URL.createObjectURL(wavBlob);
       link.download = 'mezcla.wav';
       link.click();
       URL.revokeObjectURL(link.href);
 
-      // Subir a Cloudinary
       this.mensajeExport = 'Subiendo mezcla...';
       const formData = new FormData();
       formData.append('audio', wavBlob, 'mezcla.wav');
@@ -176,12 +231,12 @@ export class AudioStudio implements OnInit, OnDestroy {
           this.zone.run(() => {
             this.exportando = false;
             this.mensajeExport = '';
-            const num = this.pistas.length + 1;
             this.pistas.push({
               url: res.url,
               nombre: `🎚 Mezcla guardada`,
               activa: true,
-              esMezcla: true
+              esMezcla: true,
+              efectos: this.efectosDefault()
             });
             this.playerSrc = res.url;
             this.cargarMezclas();
@@ -202,32 +257,6 @@ export class AudioStudio implements OnInit, OnDestroy {
         console.error(err);
       });
     }
-  }
-
-  subirArchivo(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (!input.files?.length) return;
-    const file = input.files[0];
-    input.value = '';
-
-    this.subiendoArchivo = true;
-    this.errorArchivo = '';
-
-    const formData = new FormData();
-    formData.append('audio', file, file.name);
-
-    this.http.post<any>(`${API}/api/upload-audio`, formData).subscribe({
-      next: (res) => {
-        this.subiendoArchivo = false;
-        const num = this.pistas.length + 1;
-        const nombre = file.name.replace(/\.[^.]+$/, '') || `Pista ${num}`;
-        this.pistas.push({ url: res.url, nombre, activa: true });
-      },
-      error: () => {
-        this.subiendoArchivo = false;
-        this.errorArchivo = 'Error al subir el archivo';
-      }
-    });
   }
 
   cargarMezclas() {
@@ -254,6 +283,67 @@ export class AudioStudio implements OnInit, OnDestroy {
         a.click();
         URL.revokeObjectURL(a.href);
       });
+  }
+
+  // --- Efectos Web Audio ---
+
+  private aplicarEfectos(ctx: BaseAudioContext, input: AudioNode, efectos: EfectosPista): void {
+    const gain = ctx.createGain();
+    gain.gain.value = efectos.volumen;
+    input.connect(gain);
+
+    const bass = ctx.createBiquadFilter();
+    bass.type = 'lowshelf';
+    bass.frequency.value = 250;
+    bass.gain.value = efectos.graves;
+    gain.connect(bass);
+
+    const treble = ctx.createBiquadFilter();
+    treble.type = 'highshelf';
+    treble.frequency.value = 3000;
+    treble.gain.value = efectos.agudos;
+    bass.connect(treble);
+
+    treble.connect(ctx.destination);
+
+    if (efectos.eco) {
+      const delay = ctx.createDelay(1.0);
+      delay.delayTime.value = 0.3;
+      const feedback = ctx.createGain();
+      feedback.gain.value = 0.35;
+      const echoWet = ctx.createGain();
+      echoWet.gain.value = 0.5;
+
+      treble.connect(echoWet);
+      echoWet.connect(delay);
+      delay.connect(feedback);
+      feedback.connect(delay);
+      delay.connect(ctx.destination);
+    }
+
+    if (efectos.reverb) {
+      const convolver = ctx.createConvolver();
+      convolver.buffer = this.crearImpulso(ctx, 2.5, 2);
+      const reverbWet = ctx.createGain();
+      reverbWet.gain.value = 0.35;
+
+      treble.connect(convolver);
+      convolver.connect(reverbWet);
+      reverbWet.connect(ctx.destination);
+    }
+  }
+
+  private crearImpulso(ctx: BaseAudioContext, duracion: number, decaimiento: number): AudioBuffer {
+    const rate = ctx.sampleRate;
+    const length = Math.floor(rate * duracion);
+    const impulso = ctx.createBuffer(2, length, rate);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = impulso.getChannelData(ch);
+      for (let i = 0; i < length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decaimiento);
+      }
+    }
+    return impulso;
   }
 
   // --- WAV encoder ---

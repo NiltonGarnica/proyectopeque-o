@@ -167,6 +167,86 @@
   gap: 6px;
 }
 
+/* EFECTOS */
+.efectos-panel {
+  background: #0a1628;
+  border-radius: 0 0 8px 8px;
+  padding: 10px 14px;
+  margin-top: -4px;
+  border-left: 3px solid #7c3aed;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.efecto-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8em;
+  color: #94a3b8;
+}
+
+.efecto-row label {
+  width: 44px;
+  text-align: right;
+  color: #64748b;
+}
+
+.efecto-row input[type="range"] {
+  width: 80px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  accent-color: #7c3aed;
+}
+
+.efecto-row span {
+  width: 40px;
+  font-size: 0.85em;
+  color: #cbd5e1;
+}
+
+.efecto-toggles {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.efecto-toggles button {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8em;
+  margin-top: 0;
+  color: #64748b;
+}
+
+.efecto-toggles button.active {
+  background: #4c1d95;
+  border-color: #7c3aed;
+  color: #e9d5ff;
+}
+
+.btn-fx {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  margin-top: 0;
+  color: #64748b;
+}
+
+.btn-fx.active {
+  background: #4c1d95;
+  border-color: #7c3aed;
+  color: #e9d5ff;
+}
+
 .btn-preview, .btn-mute, .btn-dup, .btn-del {
   background: #1e293b;
   border: none;
