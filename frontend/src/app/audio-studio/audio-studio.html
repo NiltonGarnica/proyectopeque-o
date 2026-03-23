@@ -56,7 +56,7 @@
           {{ p.nombre }}
         </div>
         <div class="pista-acciones">
-          <button class="btn-preview" (click)="previsualizarPista(p.url)" title="Vista previa">👁</button>
+          <button class="btn-preview" (click)="previsualizarPistaObj(p)" title="Vista previa">👁</button>
           <button class="btn-mute" [class.muted]="!p.activa" (click)="togglePista(p)"
             title="{{ p.activa ? 'Silenciar' : 'Activar' }}">
             {{ p.activa ? '🔊' : '🔇' }}
@@ -114,7 +114,6 @@
     [pistas]="pistas"
     [playheadTime]="playheadTime"
     [reproduciendo]="reproduciendo"
-    (splitAt)="onSplit($event)"
     (deletePista)="onDeleteFromTimeline($event)"
     (seekTo)="onSeekTo($event)">
   </app-audio-timeline>

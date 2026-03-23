@@ -1,7 +1,7 @@
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
-import { Pista, EfectosPista } from '../audio-timeline/audio-timeline';
+import { Pista, EfectosPista, Segmento } from '../audio-timeline/audio-timeline';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
@@ -34,6 +34,7 @@ export class AudioStudio implements OnInit, OnDestroy {
   mezclas: MezclaGuardada[] = [];
 
   private colorIdx = 0;
+  private segCounter = 0;
   private audioContext: AudioContext | null = null;
   private playheadInterval: any = null;
   private playbackStartCtxTime = 0;
@@ -45,24 +46,11 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   ngOnDestroy() { this.detenerTodas(); }
 
-  private nextColor(): string {
-    return COLORS[this.colorIdx++ % COLORS.length];
-  }
+  private nextColor(): string { return COLORS[this.colorIdx++ % COLORS.length]; }
+  private nextSegId(): number { return ++this.segCounter; }
 
   private efectosDefault(): EfectosPista {
     return { volumen: 1, eco: 0, reverb: 0, graves: 0, agudos: 0 };
-  }
-
-  private pistaNueva(url: string, nombre: string, extra: Partial<Pista> = {}): Pista {
-    const p: Pista = {
-      url, nombre, activa: true,
-      startTime: 0, trimStart: 0, trimEnd: 0, duration: 10,
-      color: this.nextColor(),
-      efectos: this.efectosDefault(),
-      ...extra
-    };
-    this.getDuration(url).then(d => p.duration = d);
-    return p;
   }
 
   private getDuration(url: string): Promise<number> {
@@ -75,22 +63,34 @@ export class AudioStudio implements OnInit, OnDestroy {
     });
   }
 
-  onAudioUrl(url: string) {
-    const num = this.pistas.filter(p => !p.esMezcla).length + 1;
-    // Place after last track
-    const offset = this.pistas.length
-      ? Math.max(...this.pistas.map(p => p.startTime + p.duration - p.trimStart - p.trimEnd))
-      : 0;
-    this.pistas.push(this.pistaNueva(url, `Pista ${num}`, { startTime: 0 }));
+  private async crearSegmento(url: string, nombre: string, startTime = 0): Promise<Segmento> {
+    const duration = await this.getDuration(url);
+    return { id: this.nextSegId(), url, nombre, startTime, trimStart: 0, trimEnd: 0, duration };
+  }
+
+  async onAudioUrl(url: string) {
+    const num = this.pistas.length + 1;
+    const nombre = `Pista ${num}`;
+    const seg = await this.crearSegmento(url, nombre);
+    this.zone.run(() => {
+      this.pistas.push({
+        nombre,
+        activa: true,
+        color: this.nextColor(),
+        efectos: this.efectosDefault(),
+        segmentos: [seg],
+      });
+    });
   }
 
   duplicarPista(pista: Pista) {
     const num = this.pistas.length + 1;
     this.pistas.push({
-      ...pista,
       nombre: `Pista ${num} (copia)`,
-      startTime: pista.startTime + (pista.duration - pista.trimStart - pista.trimEnd) + 0.1,
-      efectos: { ...pista.efectos }
+      activa: pista.activa,
+      color: this.nextColor(),
+      efectos: { ...pista.efectos },
+      segmentos: pista.segmentos.map(s => ({ ...s, id: this.nextSegId() })),
     });
   }
 
@@ -99,10 +99,14 @@ export class AudioStudio implements OnInit, OnDestroy {
   eliminarPista(index: number) {
     this.pistas.splice(index, 1);
     let n = 1;
-    this.pistas.forEach(p => { if (!p.esMezcla) p.nombre = `Pista ${n++}`; });
+    this.pistas.forEach(p => { p.nombre = `Pista ${n++}`; });
   }
 
   previsualizarPista(url: string) { this.playerSrc = url; }
+
+  previsualizarPistaObj(pista: Pista) {
+    if (pista.segmentos.length > 0) this.playerSrc = pista.segmentos[0].url;
+  }
 
   subirArchivo(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -116,30 +120,25 @@ export class AudioStudio implements OnInit, OnDestroy {
     formData.append('audio', file, file.name);
 
     this.http.post<any>(`${API}/api/upload-audio`, formData).subscribe({
-      next: (res) => {
-        this.subiendoArchivo = false;
+      next: async (res) => {
         const nombre = file.name.replace(/\.[^.]+$/, '') || `Pista ${this.pistas.length + 1}`;
-        this.pistas.push(this.pistaNueva(res.url, nombre));
+        const seg = await this.crearSegmento(res.url, nombre);
+        this.zone.run(() => {
+          this.subiendoArchivo = false;
+          this.pistas.push({
+            nombre,
+            activa: true,
+            color: this.nextColor(),
+            efectos: this.efectosDefault(),
+            segmentos: [seg],
+          });
+        });
       },
       error: () => { this.subiendoArchivo = false; this.errorArchivo = 'Error al subir el archivo'; }
     });
   }
 
   // ---- TIMELINE EVENTS ----
-
-  onSplit({ index, tiempo }: { index: number; tiempo: number }) {
-    const p = this.pistas[index];
-    const splitAudio = p.trimStart + (tiempo - p.startTime);
-    const first: Pista = { ...p, trimEnd: p.duration - splitAudio, efectos: { ...p.efectos } };
-    const second: Pista = {
-      ...p,
-      nombre: p.nombre + '\'',
-      startTime: tiempo,
-      trimStart: splitAudio,
-      efectos: { ...p.efectos }
-    };
-    this.pistas.splice(index, 1, first, second);
-  }
 
   onDeleteFromTimeline(index: number) {
     this.pistas.splice(index, 1);
@@ -163,8 +162,16 @@ export class AudioStudio implements OnInit, OnDestroy {
       const ctx = new AudioContext();
       this.audioContext = ctx;
 
-      const buffers = await Promise.all(activas.map(async p => {
-        const res = await fetch(p.url, { mode: 'cors' });
+      // Flatten all segments from all active pistas
+      const allSegs: { seg: Segmento; efectos: EfectosPista }[] = [];
+      for (const pista of activas) {
+        for (const seg of pista.segmentos) {
+          allSegs.push({ seg, efectos: pista.efectos });
+        }
+      }
+
+      const buffers = await Promise.all(allSegs.map(async ({ seg }) => {
+        const res = await fetch(seg.url, { mode: 'cors' });
         const ab = await res.arrayBuffer();
         return new Promise<AudioBuffer>((resolve, reject) => {
           ctx.decodeAudioData(ab, resolve, reject);
@@ -180,27 +187,25 @@ export class AudioStudio implements OnInit, OnDestroy {
 
       const promises: Promise<void>[] = [];
 
-      activas.forEach((pista, i) => {
-        const trackEnd = pista.startTime + pista.duration - pista.trimStart - pista.trimEnd;
-        if (trackEnd <= startFrom) return;
+      allSegs.forEach(({ seg, efectos }, i) => {
+        const segEnd = seg.startTime + seg.duration - seg.trimStart - seg.trimEnd;
+        if (segEnd <= startFrom) return;
 
         const src = ctx.createBufferSource();
         src.buffer = buffers[i];
-        this.aplicarEfectos(ctx, src, pista.efectos);
+        this.aplicarEfectos(ctx, src, efectos);
 
-        let when: number;
-        let offset: number;
-        let duration: number;
+        let when: number, offset: number, duration: number;
 
-        if (pista.startTime >= startFrom) {
-          when = ctxStart + (pista.startTime - startFrom);
-          offset = pista.trimStart;
-          duration = pista.duration - pista.trimStart - pista.trimEnd;
+        if (seg.startTime >= startFrom) {
+          when = ctxStart + (seg.startTime - startFrom);
+          offset = seg.trimStart;
+          duration = seg.duration - seg.trimStart - seg.trimEnd;
         } else {
-          const seekInto = startFrom - pista.startTime;
+          const seekInto = startFrom - seg.startTime;
           when = ctxStart;
-          offset = pista.trimStart + seekInto;
-          duration = pista.duration - offset - pista.trimEnd;
+          offset = seg.trimStart + seekInto;
+          duration = seg.duration - offset - seg.trimEnd;
         }
 
         if (duration <= 0) return;
@@ -208,9 +213,10 @@ export class AudioStudio implements OnInit, OnDestroy {
         promises.push(new Promise(resolve => src.addEventListener('ended', () => resolve(), { once: true })));
       });
 
-      // Update playhead every 40ms (setInterval runs inside Angular zone via Zone.js)
       this.playheadInterval = setInterval(() => {
-        this.playheadTime = this.playbackStartTimeline + (ctx.currentTime - this.playbackStartCtxTime);
+        this.zone.run(() => {
+          this.playheadTime = this.playbackStartTimeline + (ctx.currentTime - this.playbackStartCtxTime);
+        });
       }, 40);
 
       if (promises.length) await Promise.all(promises);
@@ -253,8 +259,16 @@ export class AudioStudio implements OnInit, OnDestroy {
 
     try {
       const audioCtx = new AudioContext();
-      const buffers = await Promise.all(activas.map(async p => {
-        const res = await fetch(p.url, { mode: 'cors' });
+
+      const allSegs: { seg: Segmento; efectos: EfectosPista }[] = [];
+      for (const pista of activas) {
+        for (const seg of pista.segmentos) {
+          allSegs.push({ seg, efectos: pista.efectos });
+        }
+      }
+
+      const buffers = await Promise.all(allSegs.map(async ({ seg }) => {
+        const res = await fetch(seg.url, { mode: 'cors' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const ab = await res.arrayBuffer();
         return new Promise<AudioBuffer>((resolve, reject) => {
@@ -264,19 +278,19 @@ export class AudioStudio implements OnInit, OnDestroy {
       audioCtx.close();
 
       const sampleRate = buffers[0].sampleRate;
-      const totalSec = Math.max(...activas.map((p, i) =>
-        p.startTime + buffers[i].duration - p.trimStart - p.trimEnd
+      const totalSec = Math.max(...allSegs.map(({ seg }, i) =>
+        seg.startTime + buffers[i].duration - seg.trimStart - seg.trimEnd
       ));
 
       this.mensajeExport = 'Mezclando pistas...';
       const offline = new OfflineAudioContext(2, Math.ceil(totalSec * sampleRate), sampleRate);
 
-      activas.forEach((pista, i) => {
+      allSegs.forEach(({ seg, efectos }, i) => {
         const src = offline.createBufferSource();
         src.buffer = buffers[i];
-        this.aplicarEfectos(offline, src, pista.efectos);
-        const dur = pista.duration - pista.trimStart - pista.trimEnd;
-        src.start(pista.startTime, pista.trimStart, dur);
+        this.aplicarEfectos(offline, src, efectos);
+        const dur = seg.duration - seg.trimStart - seg.trimEnd;
+        src.start(seg.startTime, seg.trimStart, dur);
       });
 
       const rendered = await offline.startRendering();
@@ -294,14 +308,21 @@ export class AudioStudio implements OnInit, OnDestroy {
       formData.append('audio', wavBlob, 'mezcla.wav');
 
       this.http.post<any>(`${API}/api/upload-audio`, formData).subscribe({
-        next: (res) => {
+        next: async (res) => {
+          const dur = await this.getDuration(res.url);
+          const seg: Segmento = {
+            id: this.nextSegId(), url: res.url, nombre: 'Mezcla',
+            startTime: 0, trimStart: 0, trimEnd: 0, duration: dur
+          };
           this.zone.run(() => {
             this.exportando = false;
             this.mensajeExport = '';
             this.pistas.push({
-              url: res.url, nombre: '🎚 Mezcla', activa: true, esMezcla: true,
-              startTime: 0, trimStart: 0, trimEnd: 0, duration: 10,
-              color: '#7c3aed', efectos: this.efectosDefault()
+              nombre: '🎚 Mezcla',
+              activa: true,
+              color: '#7c3aed',
+              efectos: this.efectosDefault(),
+              segmentos: [seg],
             });
             this.playerSrc = res.url;
             this.cargarMezclas();

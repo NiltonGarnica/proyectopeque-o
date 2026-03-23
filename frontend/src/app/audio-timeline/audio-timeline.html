@@ -5,13 +5,12 @@
     <div class="tl-actions">
       <button class="tl-btn" (click)="zoomOut()" title="Alejar">🔍−</button>
       <button class="tl-btn" (click)="zoomIn()" title="Acercar">🔍+</button>
-      <button class="tl-btn tl-btn-cut" (click)="splitAtPlayhead()" title="Cortar pista en la posición actual">
-        ✂ Cortar
-      </button>
+      <button class="tl-btn" (click)="copySelected()" [disabled]="!selectedSeg" title="Copiar segmento seleccionado">📋 Copiar</button>
+      <button class="tl-btn tl-btn-cut" (click)="splitAtPlayhead()" title="Cortar en la posición actual">✂ Cortar</button>
     </div>
   </div>
 
-  <div class="tl-scroll">
+  <div class="tl-scroll" (click)="clearSelection()">
 
     <!-- Regla de tiempo -->
     <div class="tl-row tl-ruler-row">
@@ -24,31 +23,46 @@
     </div>
 
     <!-- Filas de pistas -->
-    <div class="tl-row tl-track-row" *ngFor="let p of pistas; let i = index">
+    <div class="tl-row tl-track-row"
+         *ngFor="let p of pistas; let pi = index"
+         [class.tl-drop-target]="isDraggingOver(pi)">
       <div class="tl-label-col" [title]="p.nombre">
         <span class="tl-label-name">{{ p.nombre }}</span>
-        <button class="tl-del-btn" (click)="deletePista.emit(i)" title="Eliminar pista">✕</button>
+        <button class="tl-del-btn" (click)="deletePista.emit(pi)" title="Eliminar pista">✕</button>
       </div>
       <div class="tl-content" [style.width.px]="timelineWidth">
-        <div class="tl-block"
-          [class.tl-muted]="!p.activa"
-          [style.left.px]="p.startTime * pxPerSecond"
-          [style.width.px]="trackWidth(p)"
-          [style.background]="p.color">
+
+        <!-- Segmentos de la pista -->
+        <div *ngFor="let s of p.segmentos; let si = index"
+             class="tl-block"
+             [class.tl-muted]="!p.activa"
+             [class.tl-selected]="selectedSeg?.pi === pi && selectedSeg?.si === si"
+             [style.left.px]="s.startTime * pxPerSecond"
+             [style.width.px]="segWidth(s)"
+             [style.background]="p.color">
           <!-- Handle izquierdo (trim) -->
-          <div class="tl-handle tl-handle-left" (pointerdown)="startTrim($event, i, 'left')">
+          <div class="tl-handle" (pointerdown)="startTrim($event, pi, si, 'left')">
             <span>◀</span>
           </div>
-          <!-- Cuerpo (mover) -->
-          <div class="tl-block-body" (pointerdown)="startMove($event, i)">
-            <span class="tl-block-label">{{ p.nombre }}</span>
+          <!-- Cuerpo (mover + seleccionar) -->
+          <div class="tl-block-body"
+               (pointerdown)="startMove($event, pi, si)"
+               (click)="selectSeg(pi, si, $event)">
+            <span class="tl-block-label">{{ s.nombre }}</span>
           </div>
           <!-- Handle derecho (trim) -->
-          <div class="tl-handle tl-handle-right" (pointerdown)="startTrim($event, i, 'right')">
+          <div class="tl-handle" (pointerdown)="startTrim($event, pi, si, 'right')">
             <span>▶</span>
           </div>
         </div>
+
       </div>
+    </div>
+
+    <!-- Indicador de nueva pista al arrastrar -->
+    <div class="tl-row tl-new-row" *ngIf="isNewRowTarget()">
+      <div class="tl-label-col tl-label-new">+ nueva pista</div>
+      <div class="tl-content" [style.width.px]="timelineWidth"></div>
     </div>
 
     <!-- Playhead -->
@@ -59,7 +73,7 @@
   </div>
 
   <p class="tl-hint">
-    ← Arrastra los bloques para moverlos · Arrastra los bordes para recortar · Clic en la regla para posicionarte · ✂ para cortar
+    Arrastra bloques para moverlos · Arrastra verticalmente para cambiar de pista · Arrastra bordes para recortar · Clic para seleccionar · 📋 para copiar · ✂ para cortar
   </p>
 
 </div>
