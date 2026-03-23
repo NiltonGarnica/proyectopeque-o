@@ -215,27 +215,6 @@
   color: #cbd5e1;
 }
 
-.efecto-toggles {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.efecto-toggles button {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 0.8em;
-  margin-top: 0;
-  color: #64748b;
-}
-
-.efecto-toggles button.active {
-  background: #4c1d95;
-  border-color: #7c3aed;
-  color: #e9d5ff;
-}
 
 .btn-fx {
   background: #1e293b;
@@ -437,16 +416,6 @@
 
   .efecto-row input[type="range"] {
     width: 110px;
-  }
-
-  .efecto-toggles {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .efecto-toggles button {
-    flex: 1;
-    text-align: center;
   }
 
   .export-row {

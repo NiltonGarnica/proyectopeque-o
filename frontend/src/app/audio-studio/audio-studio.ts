@@ -6,8 +6,8 @@ const API = 'https://proyectopeque-o.onrender.com';
 
 interface EfectosPista {
   volumen: number;
-  eco: boolean;
-  reverb: boolean;
+  eco: number;
+  reverb: number;
   graves: number;
   agudos: number;
 }
@@ -60,7 +60,7 @@ export class AudioStudio implements OnInit, OnDestroy {
   }
 
   private efectosDefault(): EfectosPista {
-    return { volumen: 1, eco: false, reverb: false, graves: 0, agudos: 0 };
+    return { volumen: 1, eco: 0, reverb: 0, graves: 0, agudos: 0 };
   }
 
   onAudioUrl(url: string) {
@@ -306,13 +306,13 @@ export class AudioStudio implements OnInit, OnDestroy {
 
     treble.connect(ctx.destination);
 
-    if (efectos.eco) {
+    if (efectos.eco > 0) {
       const delay = ctx.createDelay(1.0);
       delay.delayTime.value = 0.3;
       const feedback = ctx.createGain();
-      feedback.gain.value = 0.35;
+      feedback.gain.value = efectos.eco * 0.6;
       const echoWet = ctx.createGain();
-      echoWet.gain.value = 0.5;
+      echoWet.gain.value = efectos.eco;
 
       treble.connect(echoWet);
       echoWet.connect(delay);
@@ -321,11 +321,11 @@ export class AudioStudio implements OnInit, OnDestroy {
       delay.connect(ctx.destination);
     }
 
-    if (efectos.reverb) {
+    if (efectos.reverb > 0) {
       const convolver = ctx.createConvolver();
       convolver.buffer = this.crearImpulso(ctx, 2.5, 2);
       const reverbWet = ctx.createGain();
-      reverbWet.gain.value = 0.35;
+      reverbWet.gain.value = efectos.reverb;
 
       treble.connect(convolver);
       convolver.connect(reverbWet);

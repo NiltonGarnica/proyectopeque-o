@@ -83,9 +83,15 @@
           <input type="range" min="-12" max="12" step="1" [(ngModel)]="p.efectos.agudos">
           <span>{{ p.efectos.agudos > 0 ? '+' : '' }}{{ p.efectos.agudos }}dB</span>
         </div>
-        <div class="efecto-toggles">
-          <button [class.active]="p.efectos.eco" (click)="p.efectos.eco = !p.efectos.eco">🔁 Eco</button>
-          <button [class.active]="p.efectos.reverb" (click)="p.efectos.reverb = !p.efectos.reverb">🏛 Reverb</button>
+        <div class="efecto-row">
+          <label>Eco</label>
+          <input type="range" min="0" max="1" step="0.05" [(ngModel)]="p.efectos.eco">
+          <span>{{ (p.efectos.eco * 100).toFixed(0) }}%</span>
+        </div>
+        <div class="efecto-row">
+          <label>Reverb</label>
+          <input type="range" min="0" max="1" step="0.05" [(ngModel)]="p.efectos.reverb">
+          <span>{{ (p.efectos.reverb * 100).toFixed(0) }}%</span>
         </div>
       </div>
     </div>
