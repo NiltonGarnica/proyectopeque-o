@@ -12,8 +12,7 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: "powersound",
-    resource_type: "auto",
-    allowed_formats: ["mp3", "wav"]
+    resource_type: "video"  // Cloudinary clasifica audio (mp3/wav) como "video"
   }
 });
 
