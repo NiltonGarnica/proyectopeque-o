@@ -1,0 +1,78 @@
+<div class="page">
+
+  <!-- CABECERA -->
+  <div class="page-header">
+    <h2>Proyectos Musicales</h2>
+    <div>
+      <button (click)="mostrarFormulario = !mostrarFormulario">
+        {{ mostrarFormulario ? 'Cancelar' : '+ Nuevo Proyecto' }}
+      </button>
+      <button class="btn-back" routerLink="/dashboard">Volver</button>
+    </div>
+  </div>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+
+  <!-- FORMULARIO NUEVO PROYECTO -->
+  <div class="card" *ngIf="mostrarFormulario">
+    <h3>Nuevo Proyecto</h3>
+    <input [(ngModel)]="titulo" placeholder="Título del proyecto">
+    <input [(ngModel)]="genero" placeholder="Género musical (ej: reggaeton, salsa)">
+    <textarea [(ngModel)]="descripcion" placeholder="Descripción" rows="3"></textarea>
+    <button (click)="crearProyecto()">Crear</button>
+  </div>
+
+  <!-- DETALLE DE PROYECTO SELECCIONADO -->
+  <div class="card detalle" *ngIf="proyectoSeleccionado">
+    <div class="detalle-header">
+      <h3>{{ proyectoSeleccionado.titulo }}</h3>
+      <button class="btn-cerrar" (click)="cerrarDetalle()">✕</button>
+    </div>
+    <p><strong>Género:</strong> {{ proyectoSeleccionado.genero || '—' }}</p>
+    <p><strong>Descripción:</strong> {{ proyectoSeleccionado.descripcion || '—' }}</p>
+    <p>
+      <strong>Estado:</strong>
+      <span class="badge" [style.background]="estadoColor(proyectoSeleccionado.estado)">
+        {{ proyectoSeleccionado.estado }}
+      </span>
+    </p>
+
+    <h4>Archivos</h4>
+    <ul class="archivos" *ngIf="proyectoSeleccionado.archivos?.length > 0">
+      <li *ngFor="let archivo of proyectoSeleccionado.archivos">
+        <span class="tipo-badge">{{ archivo.tipo }}</span>
+        <a [href]="archivo.url" target="_blank">{{ archivo.nombre }}</a>
+      </li>
+    </ul>
+    <p *ngIf="!proyectoSeleccionado.archivos?.length">Sin archivos aún.</p>
+
+    <div class="upload-area">
+      <input type="file" accept=".mp3,.wav" (change)="onArchivoSeleccionado($event)">
+      <button (click)="subirArchivo()" [disabled]="!archivoSeleccionado || subiendoArchivo">
+        {{ subiendoArchivo ? 'Subiendo...' : 'Subir archivo' }}
+      </button>
+      <p class="exito" *ngIf="mensajeArchivo === 'Archivo subido correctamente'">{{ mensajeArchivo }}</p>
+      <p class="error" *ngIf="mensajeArchivo && mensajeArchivo !== 'Archivo subido correctamente'">{{ mensajeArchivo }}</p>
+    </div>
+  </div>
+
+  <!-- LISTA DE PROYECTOS -->
+  <div class="proyecto-grid">
+    <div
+      class="proyecto-card"
+      *ngFor="let p of proyectos"
+      (click)="seleccionarProyecto(p)"
+      [class.activo]="proyectoSeleccionado?._id === p._id"
+    >
+      <div class="proyecto-titulo">{{ p.titulo }}</div>
+      <div class="proyecto-genero">{{ p.genero || 'Sin género' }}</div>
+      <span class="badge" [style.background]="estadoColor(p.estado)">{{ p.estado }}</span>
+      <div class="proyecto-archivos">{{ p.archivos?.length || 0 }} archivo(s)</div>
+    </div>
+  </div>
+
+  <p *ngIf="proyectos.length === 0 && !mostrarFormulario">
+    No tienes proyectos aún. ¡Crea el primero!
+  </p>
+
+</div>

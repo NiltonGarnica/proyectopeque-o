@@ -1,7 +1,10 @@
 <div class="container dashboard">
   <div class="header">
     <h2>Bienvenido, {{ auth.getNombre() }}</h2>
-    <button class="btn-logout" (click)="logout()">Cerrar sesión</button>
+    <div style="display:flex; gap:10px">
+      <button routerLink="/proyectos">Proyectos</button>
+      <button class="btn-logout" (click)="logout()">Cerrar sesión</button>
+    </div>
   </div>
 
   <h3>Nueva Reserva</h3>
