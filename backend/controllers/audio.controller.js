@@ -19,7 +19,7 @@ exports.uploadAudio = async (req, res) => {
     });
   } catch (error) {
     console.log("Error en uploadAudio:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 };
 
