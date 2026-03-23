@@ -29,10 +29,14 @@ export class AudioPlayer implements OnChanges, AfterViewInit, OnDestroy {
 
   ngOnChanges() {
     if (this.audio && this.src) {
-      this.audio.load();
       this.isPlaying = false;
       this.currentTime = 0;
       this.progress = 0;
+      this.audio.load();
+      this.audio.addEventListener('canplay', () => {
+        this.audio.play();
+        this.isPlaying = true;
+      }, { once: true });
     }
   }
 

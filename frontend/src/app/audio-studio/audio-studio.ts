@@ -144,6 +144,13 @@ export class AudioStudio implements OnDestroy {
       // Convertir a WAV
       const wavBlob = this.audioBufferToWav(rendered);
 
+      // Descargar localmente
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(wavBlob);
+      link.download = 'mezcla.wav';
+      link.click();
+      URL.revokeObjectURL(link.href);
+
       // Subir a Cloudinary
       this.mensajeExport = 'Subiendo mezcla...';
       const formData = new FormData();
