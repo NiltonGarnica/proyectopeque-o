@@ -50,14 +50,18 @@ exports.actualizarEstado = async (req, res) => {
 
 exports.agregarArchivo = async (req, res) => {
   try {
-    const { nombre, url, tipo } = req.body;
+    if (!req.file) return res.status(400).json({ message: "No se subió ningún archivo" });
+
+    const extension = req.file.originalname.split(".").pop().toLowerCase();
+    const tipo = ["wav", "mp3"].includes(extension) ? extension : "otro";
+
     const proyecto = await Proyecto.findByIdAndUpdate(
       req.params.id,
-      { $push: { archivos: { nombre, url, tipo } } },
+      { $push: { archivos: { nombre: req.file.originalname, url: req.file.path, tipo } } },
       { new: true }
     );
     if (!proyecto) return res.status(404).json({ message: "Proyecto no encontrado" });
-    res.json({ message: "Archivo agregado", proyecto });
+    res.json({ message: "Archivo subido", proyecto });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });
