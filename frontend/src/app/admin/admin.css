@@ -1,0 +1,133 @@
+.page {
+  width: 700px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.btn-back {
+  background: #334155;
+}
+
+.btn-back:hover {
+  background: #475569;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border-top: 3px solid #475569;
+}
+
+.stat-card.verde {
+  border-top-color: #22c55e;
+}
+
+.stat-valor {
+  font-size: 1.6em;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 0.8em;
+  color: #94a3b8;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tabs button {
+  background: #1e293b;
+  color: #94a3b8;
+  padding: 8px 20px;
+  margin-top: 0;
+}
+
+.tabs button.activo {
+  background: #22c55e;
+  color: white;
+}
+
+.tabla-item {
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.tabla-info {
+  flex: 1;
+}
+
+.tabla-principal {
+  font-weight: bold;
+  margin-bottom: 4px;
+  text-transform: capitalize;
+}
+
+.tabla-sub {
+  font-size: 0.82em;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.tabla-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tabla-acciones select {
+  background: #0f172a;
+  color: white;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78em;
+  font-weight: bold;
+  color: white;
+  white-space: nowrap;
+}
+
+.btn-eliminar {
+  background: #ef4444;
+  padding: 6px 10px;
+  margin-top: 0;
+  font-size: 0.85em;
+}
+
+.btn-eliminar:hover {
+  background: #dc2626;
+}

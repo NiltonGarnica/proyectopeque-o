@@ -12,9 +12,18 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { Register } from './register/register';
 import { Proyectos } from './proyectos/proyectos';
 import { Pagos } from './pagos/pagos';
+import { Admin } from './admin/admin';
 
 @NgModule({
-  declarations: [AppComponent, LoginComponent, DashboardComponent, Register, Proyectos, Pagos],
+  declarations: [
+    AppComponent,
+    LoginComponent,
+    DashboardComponent,
+    Register,
+    Proyectos,
+    Pagos,
+    Admin,
+  ],
   imports: [BrowserModule, FormsModule, HttpClientModule, AppRoutingModule],
   providers: [{ provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }],
   bootstrap: [AppComponent],

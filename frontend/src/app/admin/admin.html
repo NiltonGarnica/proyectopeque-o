@@ -1,0 +1,107 @@
+<div class="page">
+
+  <!-- CABECERA -->
+  <div class="page-header">
+    <h2>Panel de Administrador</h2>
+    <button class="btn-back" routerLink="/dashboard">Volver</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-valor">{{ reservas.length }}</div>
+      <div class="stat-label">Reservas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-valor">{{ proyectos.length }}</div>
+      <div class="stat-label">Proyectos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-valor">{{ pagos.length }}</div>
+      <div class="stat-label">Pagos</div>
+    </div>
+    <div class="stat-card verde">
+      <div class="stat-valor">${{ totalPagos() | number:'1.2-2' }}</div>
+      <div class="stat-label">Ingresos totales</div>
+    </div>
+  </div>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+  <p class="exito" *ngIf="exito">{{ exito }}</p>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button [class.activo]="seccion === 'reservas'" (click)="seccion = 'reservas'">Reservas</button>
+    <button [class.activo]="seccion === 'pagos'" (click)="seccion = 'pagos'">Pagos</button>
+    <button [class.activo]="seccion === 'proyectos'" (click)="seccion = 'proyectos'">Proyectos</button>
+  </div>
+
+  <!-- TABLA RESERVAS -->
+  <div *ngIf="seccion === 'reservas'">
+    <div class="tabla-item" *ngFor="let r of reservas">
+      <div class="tabla-info">
+        <div class="tabla-principal">{{ r.servicio }}</div>
+        <div class="tabla-sub">
+          {{ r.clienteId?.nombre || 'Sin cliente' }} —
+          {{ r.fecha | date:'dd/MM/yyyy HH:mm' }} —
+          {{ r.duracionHoras }}h
+        </div>
+        <div class="tabla-sub" *ngIf="r.notas">{{ r.notas }}</div>
+      </div>
+      <div class="tabla-acciones">
+        <select [ngModel]="r.estado" (ngModelChange)="cambiarEstadoReserva(r._id, $event)">
+          <option *ngFor="let e of estadosReserva" [value]="e">{{ e }}</option>
+        </select>
+        <span class="badge" [style.background]="estadoColorReserva(r.estado)">{{ r.estado }}</span>
+        <button class="btn-eliminar" (click)="eliminarReserva(r._id)">✕</button>
+      </div>
+    </div>
+    <p *ngIf="reservas.length === 0">No hay reservas.</p>
+  </div>
+
+  <!-- TABLA PAGOS -->
+  <div *ngIf="seccion === 'pagos'">
+    <div class="tabla-item" *ngFor="let p of pagos">
+      <div class="tabla-info">
+        <div class="tabla-principal">${{ p.monto | number:'1.2-2' }} — {{ p.metodo }}</div>
+        <div class="tabla-sub">
+          {{ p.clienteId?.nombre || 'Sin cliente' }}
+          <span *ngIf="p.reservaId"> — Reserva: {{ p.reservaId.servicio }}</span>
+          <span *ngIf="p.proyectoId"> — Proyecto: {{ p.proyectoId.titulo }}</span>
+        </div>
+        <div class="tabla-sub" *ngIf="p.referencia">Ref: {{ p.referencia }}</div>
+        <div class="tabla-sub">{{ p.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+      </div>
+      <div class="tabla-acciones">
+        <select [ngModel]="p.estado" (ngModelChange)="cambiarEstadoPago(p._id, $event)">
+          <option *ngFor="let e of estadosPago" [value]="e">{{ e }}</option>
+        </select>
+        <span class="badge" [style.background]="estadoColorPago(p.estado)">{{ p.estado }}</span>
+      </div>
+    </div>
+    <p *ngIf="pagos.length === 0">No hay pagos.</p>
+  </div>
+
+  <!-- TABLA PROYECTOS -->
+  <div *ngIf="seccion === 'proyectos'">
+    <div class="tabla-item" *ngFor="let p of proyectos">
+      <div class="tabla-info">
+        <div class="tabla-principal">{{ p.titulo }}</div>
+        <div class="tabla-sub">
+          {{ p.clienteId?.nombre || 'Sin cliente' }}
+          <span *ngIf="p.genero"> — {{ p.genero }}</span>
+        </div>
+        <div class="tabla-sub">{{ p.archivos?.length || 0 }} archivo(s)</div>
+      </div>
+      <div class="tabla-acciones">
+        <select [ngModel]="p.estado" (ngModelChange)="cambiarEstadoProyecto(p._id, $event)">
+          <option *ngFor="let e of estadosProyecto" [value]="e">{{ e }}</option>
+        </select>
+        <span class="badge" [style.background]="estadoColorProyecto(p.estado)">{{ p.estado }}</span>
+        <button class="btn-eliminar" (click)="eliminarProyecto(p._id)">✕</button>
+      </div>
+    </div>
+    <p *ngIf="proyectos.length === 0">No hay proyectos.</p>
+  </div>
+
+</div>
