@@ -6,6 +6,7 @@ import { Register } from './register/register';
 import { Proyectos } from './proyectos/proyectos';
 import { Pagos } from './pagos/pagos';
 import { Admin } from './admin/admin';
+import { AudioStudio } from './audio-studio/audio-studio';
 import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 
@@ -15,7 +16,8 @@ const routes: Routes = [
   { path: 'dashboard', component: DashboardComponent, canActivate: [AuthGuard] },
   { path: 'proyectos', component: Proyectos, canActivate: [AuthGuard] },
   { path: 'pagos', component: Pagos, canActivate: [AuthGuard] },
-  { path: 'admin', component: Admin, canActivate: [AdminGuard] }
+  { path: 'admin', component: Admin, canActivate: [AdminGuard] },
+  { path: 'studio', component: AudioStudio, canActivate: [AuthGuard] }
 ];
 
 @NgModule({

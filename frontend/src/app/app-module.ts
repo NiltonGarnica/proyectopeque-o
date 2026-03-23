@@ -13,6 +13,9 @@ import { Register } from './register/register';
 import { Proyectos } from './proyectos/proyectos';
 import { Pagos } from './pagos/pagos';
 import { Admin } from './admin/admin';
+import { AudioPlayer } from './audio-player/audio-player';
+import { AudioRecorder } from './audio-recorder/audio-recorder';
+import { AudioStudio } from './audio-studio/audio-studio';
 
 @NgModule({
   declarations: [
@@ -23,6 +26,9 @@ import { Admin } from './admin/admin';
     Proyectos,
     Pagos,
     Admin,
+    AudioPlayer,
+    AudioRecorder,
+    AudioStudio,
   ],
   imports: [BrowserModule, FormsModule, HttpClientModule, AppRoutingModule],
   providers: [{ provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }],

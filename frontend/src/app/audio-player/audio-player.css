@@ -1,0 +1,89 @@
+.player {
+  background: #0f172a;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.btn-play {
+  background: #22c55e;
+  border: none;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  font-size: 1.1em;
+  cursor: pointer;
+  color: white;
+  flex-shrink: 0;
+  margin-top: 0;
+  padding: 0;
+}
+
+.btn-play:hover {
+  background: #16a34a;
+}
+
+.time {
+  font-size: 0.8em;
+  color: #94a3b8;
+  white-space: nowrap;
+  min-width: 36px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  accent-color: #22c55e;
+  cursor: pointer;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  display: block;
+  width: 100%;
+}
+
+.speed-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.speed-label {
+  font-size: 0.8em;
+  color: #64748b;
+}
+
+.btn-rate {
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.78em;
+  cursor: pointer;
+  margin-top: 0;
+}
+
+.btn-rate.active {
+  background: #22c55e;
+  color: white;
+  border-color: #22c55e;
+}
+
+.player-empty {
+  background: #0f172a;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  color: #475569;
+  font-size: 0.9em;
+}

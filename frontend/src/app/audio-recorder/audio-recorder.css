@@ -1,0 +1,79 @@
+.recorder {
+  background: #0f172a;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.rec-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ef4444;
+  font-weight: bold;
+  margin-bottom: 12px;
+  font-size: 0.9em;
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.rec-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-grabar {
+  background: #ef4444;
+  margin-top: 0;
+}
+
+.btn-grabar:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.btn-detener {
+  background: #475569;
+  margin-top: 0;
+}
+
+.btn-detener:hover:not(:disabled) {
+  background: #334155;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rec-procesando {
+  color: #f59e0b;
+  font-size: 0.9em;
+  margin-bottom: 8px;
+}
+
+.preview {
+  margin-top: 12px;
+}
+
+.preview-label {
+  font-size: 0.82em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.preview audio {
+  width: 100%;
+  border-radius: 8px;
+}

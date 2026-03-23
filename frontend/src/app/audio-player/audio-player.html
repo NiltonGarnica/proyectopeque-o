@@ -1,0 +1,39 @@
+<div class="player" *ngIf="src; else sinAudio">
+
+  <audio #audioEl [src]="src"
+    (timeupdate)="onTimeUpdate()"
+    (loadedmetadata)="onLoadedMetadata()"
+    (ended)="onEnded()">
+  </audio>
+
+  <div class="controls">
+    <button class="btn-play" (click)="togglePlay()">
+      {{ isPlaying ? '⏸' : '▶' }}
+    </button>
+
+    <span class="time">{{ formatTime(currentTime) }}</span>
+
+    <input class="progress-bar" type="range"
+      min="0" max="100" step="0.1"
+      [value]="progress"
+      (input)="seek($event)">
+
+    <span class="time">{{ formatTime(duration) }}</span>
+  </div>
+
+  <div class="speed-controls">
+    <span class="speed-label">Velocidad:</span>
+    <button
+      *ngFor="let r of rates"
+      class="btn-rate"
+      [class.active]="playbackRate === r"
+      (click)="changeRate(r)">
+      {{ r }}x
+    </button>
+  </div>
+
+</div>
+
+<ng-template #sinAudio>
+  <div class="player-empty">Sin audio cargado</div>
+</ng-template>

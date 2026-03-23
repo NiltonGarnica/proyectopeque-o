@@ -4,6 +4,7 @@
     <div style="display:flex; gap:10px">
       <button routerLink="/proyectos">Proyectos</button>
       <button routerLink="/pagos">Pagos</button>
+      <button class="btn-studio" routerLink="/studio">🎵 Estudio</button>
       <button class="btn-admin" routerLink="/admin" *ngIf="auth.getRol() === 'admin'">Admin</button>
       <button class="btn-logout" (click)="logout()">Cerrar sesión</button>
     </div>

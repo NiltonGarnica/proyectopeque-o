@@ -1,0 +1,28 @@
+<div class="recorder">
+
+  <div class="rec-status" *ngIf="grabando">
+    <span class="rec-dot"></span> Grabando...
+  </div>
+
+  <div class="rec-buttons">
+    <button class="btn-grabar" (click)="iniciarGrabacion()" [disabled]="grabando || procesando">
+      🎤 Iniciar grabación
+    </button>
+    <button class="btn-detener" (click)="detenerGrabacion()" [disabled]="!grabando">
+      ⏹ Detener
+    </button>
+  </div>
+
+  <div class="rec-procesando" *ngIf="procesando">
+    Subiendo audio... ⏳
+  </div>
+
+  <p class="exito" *ngIf="exito">✅ {{ exito }}</p>
+  <p class="error" *ngIf="error">❌ {{ error }}</p>
+
+  <div class="preview" *ngIf="urlLocal && !procesando">
+    <p class="preview-label">Vista previa local:</p>
+    <audio [src]="urlLocal" controls></audio>
+  </div>
+
+</div>

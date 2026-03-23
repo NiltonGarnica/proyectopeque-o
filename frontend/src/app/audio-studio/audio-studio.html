@@ -1,0 +1,36 @@
+<div class="studio-page">
+
+  <div class="studio-header">
+    <h2>🎵 Estudio de Audio — Powersound</h2>
+    <button class="btn-back" routerLink="/dashboard">Volver</button>
+  </div>
+
+  <div class="studio-grid">
+
+    <!-- GRABADOR -->
+    <div class="studio-card">
+      <h3>🎤 Grabador de Voz</h3>
+      <app-audio-recorder (audioUrl)="onAudioUrl($event)"></app-audio-recorder>
+    </div>
+
+    <!-- REPRODUCTOR -->
+    <div class="studio-card">
+      <h3>🎧 Reproductor</h3>
+      <app-audio-player [src]="playerSrc"></app-audio-player>
+    </div>
+
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="historial" *ngIf="historial.length > 0">
+    <h3>📂 Grabaciones de esta sesión</h3>
+    <ul>
+      <li *ngFor="let url of historial; let i = index">
+        <span>Grabación {{ historial.length - i }}</span>
+        <button (click)="cargarEnReproductor(url)">▶ Cargar</button>
+        <a [href]="url" target="_blank">🔗 Abrir</a>
+      </li>
+    </ul>
+  </div>
+
+</div>

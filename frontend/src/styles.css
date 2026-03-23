@@ -74,6 +74,15 @@ button:hover {
   background: #6d28d9;
 }
 
+.btn-studio {
+  background: #0891b2;
+  margin-top: 0;
+}
+
+.btn-studio:hover {
+  background: #0e7490;
+}
+
 .error {
   color: #f87171;
   font-size: 0.9em;
