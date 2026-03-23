@@ -35,7 +35,7 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   private colorIdx = 0;
   private audioContext: AudioContext | null = null;
-  private playheadRAF: number | null = null;
+  private playheadInterval: any = null;
   private playbackStartCtxTime = 0;
   private playbackStartTimeline = 0;
 
@@ -208,22 +208,17 @@ export class AudioStudio implements OnInit, OnDestroy {
         promises.push(new Promise(resolve => src.addEventListener('ended', () => resolve(), { once: true })));
       });
 
-      // Update playhead
-      const tick = () => {
-        if (!this.reproduciendo) return;
-        this.zone.run(() => {
-          this.playheadTime = this.playbackStartTimeline + (ctx.currentTime - this.playbackStartCtxTime);
-        });
-        this.playheadRAF = requestAnimationFrame(tick);
-      };
-      this.playheadRAF = requestAnimationFrame(tick);
+      // Update playhead every 40ms (setInterval runs inside Angular zone via Zone.js)
+      this.playheadInterval = setInterval(() => {
+        this.playheadTime = this.playbackStartTimeline + (ctx.currentTime - this.playbackStartCtxTime);
+      }, 40);
 
       if (promises.length) await Promise.all(promises);
 
       this.zone.run(() => {
         this.reproduciendo = false;
         this.mensajeExport = '';
-        if (this.playheadRAF) { cancelAnimationFrame(this.playheadRAF); this.playheadRAF = null; }
+        if (this.playheadInterval) { clearInterval(this.playheadInterval); this.playheadInterval = null; }
         ctx.close();
         this.audioContext = null;
       });
@@ -233,6 +228,7 @@ export class AudioStudio implements OnInit, OnDestroy {
         this.reproduciendo = false;
         this.mensajeExport = 'Error al cargar pistas';
         console.error(err);
+        if (this.playheadInterval) { clearInterval(this.playheadInterval); this.playheadInterval = null; }
         this.audioContext?.close();
         this.audioContext = null;
       });
@@ -242,7 +238,7 @@ export class AudioStudio implements OnInit, OnDestroy {
   detenerTodas() {
     this.reproduciendo = false;
     this.mensajeExport = '';
-    if (this.playheadRAF) { cancelAnimationFrame(this.playheadRAF); this.playheadRAF = null; }
+    if (this.playheadInterval) { clearInterval(this.playheadInterval); this.playheadInterval = null; }
     if (this.audioContext) { this.audioContext.close(); this.audioContext = null; }
   }
 

@@ -48,8 +48,8 @@ export class AudioTimeline {
     origTrimEnd: number;
   } | null = null;
 
-  private boundMove = (e: PointerEvent) => this.onPointerMove(e);
-  private boundUp = () => this.onPointerUp();
+  private boundMove = (e: PointerEvent) => this.zone.run(() => this.onPointerMove(e));
+  private boundUp = () => this.zone.run(() => this.onPointerUp());
 
   constructor(private zone: NgZone) {}
 
@@ -99,6 +99,7 @@ export class AudioTimeline {
   startMove(event: PointerEvent, index: number) {
     event.preventDefault();
     event.stopPropagation();
+    (event.target as HTMLElement).setPointerCapture(event.pointerId);
     const p = this.pistas[index];
     this.dragState = {
       type: 'move', pistaIndex: index, startX: event.clientX,
@@ -111,6 +112,7 @@ export class AudioTimeline {
   startTrim(event: PointerEvent, index: number, side: 'left' | 'right') {
     event.preventDefault();
     event.stopPropagation();
+    (event.target as HTMLElement).setPointerCapture(event.pointerId);
     const p = this.pistas[index];
     this.dragState = {
       type: side === 'left' ? 'trim-left' : 'trim-right',
@@ -127,21 +129,19 @@ export class AudioTimeline {
     const p = this.pistas[this.dragState.pistaIndex];
     const d = this.dragState;
 
-    this.zone.run(() => {
-      if (d.type === 'move') {
-        p.startTime = Math.max(0, d.origStartTime + ds);
+    if (d.type === 'move') {
+      p.startTime = Math.max(0, d.origStartTime + ds);
 
-      } else if (d.type === 'trim-left') {
-        const maxTrim = p.duration - d.origTrimEnd - 0.05;
-        const newTrim = Math.max(0, Math.min(d.origTrimStart + ds, maxTrim));
-        p.startTime = Math.max(0, d.origStartTime + (newTrim - d.origTrimStart));
-        p.trimStart = newTrim;
+    } else if (d.type === 'trim-left') {
+      const maxTrim = p.duration - d.origTrimEnd - 0.05;
+      const newTrim = Math.max(0, Math.min(d.origTrimStart + ds, maxTrim));
+      p.startTime = Math.max(0, d.origStartTime + (newTrim - d.origTrimStart));
+      p.trimStart = newTrim;
 
-      } else if (d.type === 'trim-right') {
-        const maxTrim = p.duration - d.origTrimStart - 0.05;
-        p.trimEnd = Math.max(0, Math.min(d.origTrimEnd - ds, maxTrim));
-      }
-    });
+    } else if (d.type === 'trim-right') {
+      const maxTrim = p.duration - d.origTrimStart - 0.05;
+      p.trimEnd = Math.max(0, Math.min(d.origTrimEnd - ds, maxTrim));
+    }
   }
 
   private onPointerUp() {
