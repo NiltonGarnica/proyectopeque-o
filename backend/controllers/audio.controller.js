@@ -5,7 +5,7 @@ exports.uploadAudio = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo de audio" });
 
     const mezcla = await Mezcla.create({
-      usuario: req.usuario.id,
+      usuario: req.usuario.userId,
       url: req.file.path,
       public_id: req.file.filename,
       nombre: req.body.nombre || "Mezcla"
@@ -25,7 +25,7 @@ exports.uploadAudio = async (req, res) => {
 
 exports.getMezclas = async (req, res) => {
   try {
-    const mezclas = await Mezcla.find({ usuario: req.usuario.id }).sort({ fecha: -1 });
+    const mezclas = await Mezcla.find({ usuario: req.usuario.userId }).sort({ fecha: -1 });
     res.json(mezclas);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -34,7 +34,7 @@ exports.getMezclas = async (req, res) => {
 
 exports.deleteMezcla = async (req, res) => {
   try {
-    const mezcla = await Mezcla.findOneAndDelete({ _id: req.params.id, usuario: req.usuario.id });
+    const mezcla = await Mezcla.findOneAndDelete({ _id: req.params.id, usuario: req.usuario.userId });
     if (!mezcla) return res.status(404).json({ message: "No encontrada" });
     res.json({ message: "Eliminada" });
   } catch (error) {
