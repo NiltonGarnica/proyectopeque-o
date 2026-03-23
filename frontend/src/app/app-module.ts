@@ -16,6 +16,7 @@ import { Admin } from './admin/admin';
 import { AudioPlayer } from './audio-player/audio-player';
 import { AudioRecorder } from './audio-recorder/audio-recorder';
 import { AudioStudio } from './audio-studio/audio-studio';
+import { AudioTimeline } from './audio-timeline/audio-timeline';
 
 @NgModule({
   declarations: [
@@ -29,6 +30,7 @@ import { AudioStudio } from './audio-studio/audio-studio';
     AudioPlayer,
     AudioRecorder,
     AudioStudio,
+    AudioTimeline,
   ],
   imports: [BrowserModule, FormsModule, HttpClientModule, AppRoutingModule],
   providers: [{ provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }],

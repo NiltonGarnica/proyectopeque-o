@@ -1,0 +1,65 @@
+<div class="tl-container">
+
+  <div class="tl-toolbar">
+    <h3>🎬 Timeline</h3>
+    <div class="tl-actions">
+      <button class="tl-btn" (click)="zoomOut()" title="Alejar">🔍−</button>
+      <button class="tl-btn" (click)="zoomIn()" title="Acercar">🔍+</button>
+      <button class="tl-btn tl-btn-cut" (click)="splitAtPlayhead()" title="Cortar pista en la posición actual">
+        ✂ Cortar
+      </button>
+    </div>
+  </div>
+
+  <div class="tl-scroll">
+
+    <!-- Regla de tiempo -->
+    <div class="tl-row tl-ruler-row">
+      <div class="tl-label-col tl-label-ruler"></div>
+      <div class="tl-content" [style.width.px]="timelineWidth" (click)="onRulerClick($event)">
+        <div *ngFor="let t of rulerTicks" class="tl-tick" [style.left.px]="t * pxPerSecond">
+          <span>{{ t }}s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filas de pistas -->
+    <div class="tl-row tl-track-row" *ngFor="let p of pistas; let i = index">
+      <div class="tl-label-col" [title]="p.nombre">
+        <span class="tl-label-name">{{ p.nombre }}</span>
+        <button class="tl-del-btn" (click)="deletePista.emit(i)" title="Eliminar pista">✕</button>
+      </div>
+      <div class="tl-content" [style.width.px]="timelineWidth">
+        <div class="tl-block"
+          [class.tl-muted]="!p.activa"
+          [style.left.px]="p.startTime * pxPerSecond"
+          [style.width.px]="trackWidth(p)"
+          [style.background]="p.color">
+          <!-- Handle izquierdo (trim) -->
+          <div class="tl-handle tl-handle-left" (pointerdown)="startTrim($event, i, 'left')">
+            <span>◀</span>
+          </div>
+          <!-- Cuerpo (mover) -->
+          <div class="tl-block-body" (pointerdown)="startMove($event, i)">
+            <span class="tl-block-label">{{ p.nombre }}</span>
+          </div>
+          <!-- Handle derecho (trim) -->
+          <div class="tl-handle tl-handle-right" (pointerdown)="startTrim($event, i, 'right')">
+            <span>▶</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Playhead -->
+    <div class="tl-playhead" [style.left.px]="LABEL_W + playheadTime * pxPerSecond">
+      <div class="tl-playhead-head"></div>
+    </div>
+
+  </div>
+
+  <p class="tl-hint">
+    ← Arrastra los bloques para moverlos · Arrastra los bordes para recortar · Clic en la regla para posicionarte · ✂ para cortar
+  </p>
+
+</div>

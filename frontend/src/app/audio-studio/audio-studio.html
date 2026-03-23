@@ -41,7 +41,7 @@
       <h3>🎚 Pistas ({{ pistas.length }})</h3>
       <div class="mixer-controls">
         <button class="btn-mezclar" (click)="mezclarYReproducir()" [disabled]="reproduciendo">
-          {{ reproduciendo ? '▶ Reproduciendo...' : '▶ Reproducir todas' }}
+          {{ mensajeExport || (reproduciendo ? '▶ Reproduciendo...' : '▶ Reproducir') }}
         </button>
         <button class="btn-stop" (click)="detenerTodas()" [disabled]="!reproduciendo">
           ⏹ Detener
@@ -107,6 +107,17 @@
     </div>
 
   </div>
+
+  <!-- TIMELINE -->
+  <app-audio-timeline
+    *ngIf="pistas.length > 0"
+    [pistas]="pistas"
+    [playheadTime]="playheadTime"
+    [reproduciendo]="reproduciendo"
+    (splitAt)="onSplit($event)"
+    (deletePista)="onDeleteFromTimeline($event)"
+    (seekTo)="onSeekTo($event)">
+  </app-audio-timeline>
 
   <div class="empty-hint" *ngIf="pistas.length === 0">
     <p>Empieza grabando tu voz. Puedes agregar tantas pistas como quieras y escucharlas todas juntas. 🎶</p>
