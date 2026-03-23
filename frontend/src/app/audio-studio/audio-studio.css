@@ -46,6 +46,36 @@
   margin: 0 0 12px;
 }
 
+/* SUBIR ARCHIVO */
+.upload-label {
+  display: inline-block;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.upload-label input[type="file"] {
+  display: none;
+}
+
+.upload-label span {
+  display: inline-block;
+  background: #0891b2;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9em;
+  transition: background 0.2s;
+}
+
+.upload-label:hover span {
+  background: #0e7490;
+}
+
+.upload-label input:disabled + span {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* MEZCLADOR */
 .mixer {
   background: #1e293b;

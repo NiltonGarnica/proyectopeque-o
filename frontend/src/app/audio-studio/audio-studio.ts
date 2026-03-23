@@ -31,6 +31,8 @@ export class AudioStudio implements OnInit, OnDestroy {
   reproduciendo = false;
   exportando = false;
   mensajeExport = '';
+  subiendoArchivo = false;
+  errorArchivo = '';
 
   mezclas: MezclaGuardada[] = [];
 
@@ -200,6 +202,32 @@ export class AudioStudio implements OnInit, OnDestroy {
         console.error(err);
       });
     }
+  }
+
+  subirArchivo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    input.value = '';
+
+    this.subiendoArchivo = true;
+    this.errorArchivo = '';
+
+    const formData = new FormData();
+    formData.append('audio', file, file.name);
+
+    this.http.post<any>(`${API}/api/upload-audio`, formData).subscribe({
+      next: (res) => {
+        this.subiendoArchivo = false;
+        const num = this.pistas.length + 1;
+        const nombre = file.name.replace(/\.[^.]+$/, '') || `Pista ${num}`;
+        this.pistas.push({ url: res.url, nombre, activa: true });
+      },
+      error: () => {
+        this.subiendoArchivo = false;
+        this.errorArchivo = 'Error al subir el archivo';
+      }
+    });
   }
 
   cargarMezclas() {

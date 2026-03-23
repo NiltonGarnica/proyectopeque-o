@@ -14,8 +14,19 @@
       <app-audio-recorder (audioUrl)="onAudioUrl($event)"></app-audio-recorder>
     </div>
 
-    <!-- REPRODUCTOR INDIVIDUAL -->
+    <!-- SUBIR ARCHIVO -->
     <div class="studio-card">
+      <h3>📁 Subir archivo de audio</h3>
+      <p class="hint">Sube un MP3, WAV u OGG desde tu dispositivo y agrégalo como pista.</p>
+      <label class="upload-label">
+        <input type="file" accept="audio/*" (change)="subirArchivo($event)" [disabled]="subiendoArchivo" #fileInput>
+        <span>{{ subiendoArchivo ? 'Subiendo...' : 'Seleccionar archivo' }}</span>
+      </label>
+      <p class="error" *ngIf="errorArchivo">{{ errorArchivo }}</p>
+    </div>
+
+    <!-- REPRODUCTOR INDIVIDUAL -->
+    <div class="studio-card" style="grid-column: 1 / -1">
       <h3>🎧 Vista previa individual</h3>
       <p class="hint">Haz click en una pista para previsualizarla aquí.</p>
       <app-audio-player [src]="playerSrc"></app-audio-player>
