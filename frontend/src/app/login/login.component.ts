@@ -15,7 +15,7 @@ export class LoginComponent {
   constructor(private http: HttpClient, private router: Router) {}
 
   login() {
-  this.http.post<any>('https://proyectopeque-o.onrender.com', {
+  this.http.post<any>('https://proyectopeque-o.onrender.com/login', {
     correo: this.correo,
     contraseña: this.password // 👈 aquí sí puedes dejar ñ porque es JSON
   }).subscribe(res => {

@@ -20,7 +20,7 @@ export class DashboardComponent implements OnInit {
   }
 
   crearActividad() {
-    this.http.post('https://proyectopeque-o.onrender.com', {
+    this.http.post('https://proyectopeque-o.onrender.com/actividad', {
       texto: this.texto,
       userId: this.userId
     }).subscribe(() => {
