@@ -16,11 +16,56 @@ body {
   box-shadow: 0 0 20px rgba(0,0,0,0.5);
   text-align: center;
   margin-top: 60px;
+  width: 100%;
+  max-width: 500px;
+  box-sizing: border-box;
 }
 
 .dashboard {
-  width: 500px;
+  max-width: 500px;
+  width: 100%;
   text-align: left;
+}
+
+@media (max-width: 560px) {
+  body {
+    align-items: flex-start;
+  }
+
+  .container {
+    margin-top: 0;
+    border-radius: 0;
+    padding: 20px 16px;
+    min-height: 100vh;
+    box-shadow: none;
+  }
+
+  .dashboard {
+    max-width: 100%;
+  }
+
+  input, select {
+    font-size: 16px; /* evita zoom automático en iOS */
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .header div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .header button {
+    flex: 1;
+    min-width: 80px;
+    font-size: 0.85em;
+    padding: 8px 10px;
+  }
 }
 
 .header {
