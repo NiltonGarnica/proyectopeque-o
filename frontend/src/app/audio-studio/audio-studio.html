@@ -52,6 +52,7 @@
           title="{{ p.activa ? 'Silenciar' : 'Activar' }}">
           {{ p.activa ? '🔊' : '🔇' }}
         </button>
+        <button class="btn-dup" (click)="duplicarPista(p)" title="Duplicar pista">📋</button>
         <button class="btn-del" (click)="eliminarPista(i)" title="Eliminar pista">✕</button>
       </div>
     </div>
@@ -59,6 +60,12 @@
     <p class="mixer-hint" *ngIf="pistas.length > 1">
       {{ pistas.filter(p => p.activa).length }} de {{ pistas.length }} pistas activas
     </p>
+
+    <div class="export-row">
+      <button class="btn-export" (click)="exportarMezcla()" [disabled]="exportando || reproduciendo">
+        {{ exportando ? mensajeExport : '💾 Exportar mezcla' }}
+      </button>
+    </div>
 
   </div>
 
