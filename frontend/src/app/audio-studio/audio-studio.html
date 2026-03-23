@@ -10,27 +10,60 @@
     <!-- GRABADOR -->
     <div class="studio-card">
       <h3>🎤 Grabador de Voz</h3>
+      <p class="hint">Graba tantas veces como quieras — cada grabación se agrega como una pista nueva.</p>
       <app-audio-recorder (audioUrl)="onAudioUrl($event)"></app-audio-recorder>
     </div>
 
-    <!-- REPRODUCTOR -->
+    <!-- REPRODUCTOR INDIVIDUAL -->
     <div class="studio-card">
-      <h3>🎧 Reproductor</h3>
+      <h3>🎧 Vista previa individual</h3>
+      <p class="hint">Haz click en una pista para previsualizarla aquí.</p>
       <app-audio-player [src]="playerSrc"></app-audio-player>
     </div>
 
   </div>
 
-  <!-- HISTORIAL -->
-  <div class="historial" *ngIf="historial.length > 0">
-    <h3>📂 Grabaciones de esta sesión</h3>
-    <ul>
-      <li *ngFor="let url of historial; let i = index">
-        <span>Grabación {{ historial.length - i }}</span>
-        <button (click)="cargarEnReproductor(url)">▶ Cargar</button>
-        <a [href]="url" target="_blank">🔗 Abrir</a>
-      </li>
-    </ul>
+  <!-- MEZCLADOR MULTITRACK -->
+  <div class="mixer" *ngIf="pistas.length > 0">
+
+    <div class="mixer-header">
+      <h3>🎚 Pistas ({{ pistas.length }})</h3>
+      <div class="mixer-controls">
+        <button class="btn-mezclar" (click)="mezclarYReproducir()" [disabled]="reproduciendo">
+          {{ reproduciendo ? '▶ Reproduciendo...' : '▶ Reproducir todas' }}
+        </button>
+        <button class="btn-stop" (click)="detenerTodas()" [disabled]="!reproduciendo">
+          ⏹ Detener
+        </button>
+      </div>
+    </div>
+
+    <div class="pista-item" *ngFor="let p of pistas; let i = index">
+      <div class="pista-nombre">
+        <span class="pista-dot" [class.muted]="!p.activa"></span>
+        {{ p.nombre }}
+      </div>
+      <div class="pista-acciones">
+        <button class="btn-preview" (click)="previsualizarPista(p.url)" title="Vista previa">👁</button>
+        <button
+          class="btn-mute"
+          [class.muted]="!p.activa"
+          (click)="togglePista(p)"
+          title="{{ p.activa ? 'Silenciar' : 'Activar' }}">
+          {{ p.activa ? '🔊' : '🔇' }}
+        </button>
+        <button class="btn-del" (click)="eliminarPista(i)" title="Eliminar pista">✕</button>
+      </div>
+    </div>
+
+    <p class="mixer-hint" *ngIf="pistas.length > 1">
+      {{ pistas.filter(p => p.activa).length }} de {{ pistas.length }} pistas activas
+    </p>
+
+  </div>
+
+  <div class="empty-hint" *ngIf="pistas.length === 0">
+    <p>Empieza grabando tu voz. Puedes agregar tantas pistas como quieras y escucharlas todas juntas. 🎶</p>
   </div>
 
 </div>

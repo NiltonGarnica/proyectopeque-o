@@ -35,58 +35,145 @@
 }
 
 .studio-card h3 {
-  margin: 0 0 14px;
+  margin: 0 0 6px;
   font-size: 1em;
   color: #cbd5e1;
 }
 
-.historial {
+.hint {
+  font-size: 0.78em;
+  color: #475569;
+  margin: 0 0 12px;
+}
+
+/* MEZCLADOR */
+.mixer {
   background: #1e293b;
   border-radius: 12px;
   padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 12px rgba(0,0,0,0.3);
 }
 
-.historial h3 {
-  margin: 0 0 12px;
+.mixer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.mixer-header h3 {
+  margin: 0;
   font-size: 1em;
   color: #cbd5e1;
 }
 
-.historial ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.mixer-controls {
+  display: flex;
+  gap: 8px;
 }
 
-.historial li {
+.btn-mezclar {
+  background: #22c55e;
+  margin-top: 0;
+  padding: 8px 16px;
+}
+
+.btn-mezclar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-stop {
+  background: #ef4444;
+  margin-top: 0;
+  padding: 8px 16px;
+}
+
+.btn-stop:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* PISTAS */
+.pista-item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
   background: #0f172a;
   border-radius: 8px;
-  margin-bottom: 6px;
-  font-size: 0.88em;
-  color: #94a3b8;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  border-left: 3px solid #22c55e;
+  transition: border-color 0.2s;
 }
 
-.historial li span {
-  flex: 1;
+.pista-item:has(.pista-dot.muted) {
+  border-left-color: #475569;
 }
 
-.historial li button {
+.pista-nombre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9em;
+  color: #cbd5e1;
+}
+
+.pista-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background: #22c55e;
-  padding: 4px 10px;
-  font-size: 0.8em;
+  flex-shrink: 0;
+}
+
+.pista-dot.muted {
+  background: #475569;
+}
+
+.pista-acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-preview, .btn-mute, .btn-del {
+  background: #1e293b;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.9em;
   margin-top: 0;
+  color: white;
 }
 
-.historial li a {
-  color: #7dd3fc;
-  text-decoration: none;
-  font-size: 0.85em;
+.btn-mute.muted {
+  opacity: 0.5;
 }
 
-.historial li a:hover {
-  text-decoration: underline;
+.btn-del {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+.btn-del:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.mixer-hint {
+  font-size: 0.78em;
+  color: #475569;
+  margin: 8px 0 0;
+  text-align: right;
+}
+
+.empty-hint {
+  text-align: center;
+  color: #475569;
+  padding: 32px;
+  background: #1e293b;
+  border-radius: 12px;
+  font-size: 0.9em;
 }
