@@ -86,3 +86,23 @@ li {
   color: #22c55e;
   font-weight: bold;
 }
+
+.exito {
+  color: #4ade80;
+  font-size: 0.9em;
+}
+
+.link {
+  margin-top: 16px;
+  font-size: 0.9em;
+  color: #94a3b8;
+}
+
+.link a {
+  color: #22c55e;
+  text-decoration: none;
+}
+
+.link a:hover {
+  text-decoration: underline;
+}

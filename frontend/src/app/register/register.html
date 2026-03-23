@@ -1,0 +1,16 @@
+<div class="container">
+  <h2>Crear cuenta</h2>
+
+  <input [(ngModel)]="nombre" placeholder="Nombre completo">
+  <input [(ngModel)]="correo" placeholder="Correo electrónico" type="email">
+  <input [(ngModel)]="telefono" placeholder="Teléfono (opcional)">
+  <input [(ngModel)]="contraseña" placeholder="Contraseña" type="password">
+  <input [(ngModel)]="confirmar" placeholder="Confirmar contraseña" type="password">
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+  <p class="exito" *ngIf="exito">{{ exito }}</p>
+
+  <button (click)="registrar()">Registrarse</button>
+
+  <p class="link">¿Ya tienes cuenta? <a routerLink="/">Inicia sesión</a></p>
+</div>
