@@ -8,7 +8,15 @@ router.post("/", verificarToken, crear);
 router.get("/", verificarToken, soloAdmin, listar);
 router.get("/cliente/:clienteId", verificarToken, listarPorCliente);
 router.patch("/:id/estado", verificarToken, soloAdmin, actualizarEstado);
-router.post("/:id/archivos", verificarToken, upload.single("archivo"), agregarArchivo);
+router.post("/:id/archivos", verificarToken, (req, res, next) => {
+  upload.single("archivo")(req, res, (err) => {
+    if (err) {
+      console.log("Error en upload middleware:", err);
+      return res.status(500).json({ error: err.message || String(err) });
+    }
+    next();
+  });
+}, agregarArchivo);
 router.delete("/:id", verificarToken, soloAdmin, eliminar);
 
 module.exports = router;
