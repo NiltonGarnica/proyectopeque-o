@@ -1,5 +1,15 @@
 import { Component, Input, Output, EventEmitter, NgZone } from '@angular/core';
 
+export interface Segmento {
+  id: number;
+  url: string;
+  nombre: string;
+  startTime: number;
+  trimStart: number;
+  trimEnd: number;
+  duration: number;
+}
+
 export interface EfectosPista {
   volumen: number;
   eco: number;
@@ -9,17 +19,12 @@ export interface EfectosPista {
 }
 
 export interface Pista {
-  url: string;
   nombre: string;
   activa: boolean;
-  esMezcla?: boolean;
   mostrarEfectos?: boolean;
   efectos: EfectosPista;
-  startTime: number;
-  trimStart: number;
-  trimEnd: number;
-  duration: number;
   color: string;
+  segmentos: Segmento[];
 }
 
 @Component({
@@ -32,20 +37,24 @@ export class AudioTimeline {
   @Input() pistas: Pista[] = [];
   @Input() playheadTime = 0;
   @Input() reproduciendo = false;
-  @Output() splitAt = new EventEmitter<{ index: number; tiempo: number }>();
-  @Output() deletePista = new EventEmitter<number>();
   @Output() seekTo = new EventEmitter<number>();
+  @Output() deletePista = new EventEmitter<number>();
 
   pxPerSecond = 80;
   readonly LABEL_W = 80;
+  readonly ROW_H = 52;
+
+  selectedSeg: { pi: number; si: number } | null = null;
+
+  private segCounter = 0;
+  private nextId() { return ++this.segCounter; }
 
   private dragState: {
     type: 'move' | 'trim-left' | 'trim-right';
-    pistaIndex: number;
-    startX: number;
-    origStartTime: number;
-    origTrimStart: number;
-    origTrimEnd: number;
+    srcPi: number; si: number; targetPi: number;
+    startX: number; startY: number;
+    origStartTime: number; origTrimStart: number; origTrimEnd: number;
+    hasMoved: boolean;
   } | null = null;
 
   private boundMove = (e: PointerEvent) => this.zone.run(() => this.onPointerMove(e));
@@ -54,16 +63,14 @@ export class AudioTimeline {
   constructor(private zone: NgZone) {}
 
   get totalDuration(): number {
-    if (!this.pistas.length) return 10;
-    return Math.max(
-      ...this.pistas.map(p => p.startTime + Math.max(0.1, p.duration - p.trimStart - p.trimEnd)),
-      10
-    );
+    let max = 10;
+    for (const p of this.pistas)
+      for (const s of p.segmentos)
+        max = Math.max(max, s.startTime + s.duration - s.trimStart - s.trimEnd);
+    return max;
   }
 
-  get timelineWidth(): number {
-    return (this.totalDuration + 3) * this.pxPerSecond;
-  }
+  get timelineWidth(): number { return (this.totalDuration + 3) * this.pxPerSecond; }
 
   get rulerTicks(): number[] {
     const step = this.pxPerSecond >= 120 ? 1 : this.pxPerSecond >= 60 ? 2 : 5;
@@ -72,52 +79,81 @@ export class AudioTimeline {
     return ticks;
   }
 
-  trackWidth(p: Pista): number {
-    return Math.max(12, (p.duration - p.trimStart - p.trimEnd) * this.pxPerSecond);
+  segWidth(s: Segmento): number {
+    return Math.max(12, (s.duration - s.trimStart - s.trimEnd) * this.pxPerSecond);
   }
 
   zoomIn() { this.pxPerSecond = Math.min(this.pxPerSecond * 1.5, 400); }
   zoomOut() { this.pxPerSecond = Math.max(this.pxPerSecond / 1.5, 20); }
 
-  onRulerClick(event: MouseEvent) {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const t = Math.max(0, (event.clientX - rect.left) / this.pxPerSecond);
-    this.seekTo.emit(t);
+  onRulerClick(e: MouseEvent) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    this.seekTo.emit(Math.max(0, (e.clientX - rect.left) / this.pxPerSecond));
+  }
+
+  clearSelection() { this.selectedSeg = null; }
+
+  selectSeg(pi: number, si: number, e: Event) {
+    e.stopPropagation();
+    const same = this.selectedSeg?.pi === pi && this.selectedSeg?.si === si;
+    this.selectedSeg = same ? null : { pi, si };
+  }
+
+  copySelected() {
+    if (!this.selectedSeg) return;
+    const { pi, si } = this.selectedSeg;
+    const s = this.pistas[pi].segmentos[si];
+    const w = s.duration - s.trimStart - s.trimEnd;
+    const copy: Segmento = { ...s, id: this.nextId(), startTime: s.startTime + w + 0.05 };
+    this.pistas[pi].segmentos.push(copy);
+    this.selectedSeg = { pi, si: this.pistas[pi].segmentos.length - 1 };
   }
 
   splitAtPlayhead() {
-    for (let i = 0; i < this.pistas.length; i++) {
-      const p = this.pistas[i];
-      const trackEnd = p.startTime + p.duration - p.trimStart - p.trimEnd;
-      if (this.playheadTime > p.startTime + 0.05 && this.playheadTime < trackEnd - 0.05) {
-        this.splitAt.emit({ index: i, tiempo: this.playheadTime });
-        return;
+    const t = this.playheadTime;
+    for (let pi = 0; pi < this.pistas.length; pi++) {
+      const segs = this.pistas[pi].segmentos;
+      for (let si = 0; si < segs.length; si++) {
+        const s = segs[si];
+        const end = s.startTime + s.duration - s.trimStart - s.trimEnd;
+        if (t > s.startTime + 0.05 && t < end - 0.05) {
+          const splitAudio = s.trimStart + (t - s.startTime);
+          segs.splice(si, 1,
+            { ...s, id: this.nextId(), trimEnd: s.duration - splitAudio },
+            { ...s, id: this.nextId(), startTime: t, trimStart: splitAudio }
+          );
+          this.selectedSeg = null;
+          return;
+        }
       }
     }
   }
 
-  startMove(event: PointerEvent, index: number) {
-    event.preventDefault();
+  startMove(event: PointerEvent, pi: number, si: number) {
     event.stopPropagation();
-    (event.target as HTMLElement).setPointerCapture(event.pointerId);
-    const p = this.pistas[index];
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    const s = this.pistas[pi].segmentos[si];
     this.dragState = {
-      type: 'move', pistaIndex: index, startX: event.clientX,
-      origStartTime: p.startTime, origTrimStart: p.trimStart, origTrimEnd: p.trimEnd,
+      type: 'move', srcPi: pi, si, targetPi: pi,
+      startX: event.clientX, startY: event.clientY,
+      origStartTime: s.startTime, origTrimStart: s.trimStart, origTrimEnd: s.trimEnd,
+      hasMoved: false,
     };
     window.addEventListener('pointermove', this.boundMove);
     window.addEventListener('pointerup', this.boundUp);
   }
 
-  startTrim(event: PointerEvent, index: number, side: 'left' | 'right') {
+  startTrim(event: PointerEvent, pi: number, si: number, side: 'left' | 'right') {
     event.preventDefault();
     event.stopPropagation();
-    (event.target as HTMLElement).setPointerCapture(event.pointerId);
-    const p = this.pistas[index];
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    const s = this.pistas[pi].segmentos[si];
     this.dragState = {
       type: side === 'left' ? 'trim-left' : 'trim-right',
-      pistaIndex: index, startX: event.clientX,
-      origStartTime: p.startTime, origTrimStart: p.trimStart, origTrimEnd: p.trimEnd,
+      srcPi: pi, si, targetPi: pi,
+      startX: event.clientX, startY: event.clientY,
+      origStartTime: s.startTime, origTrimStart: s.trimStart, origTrimEnd: s.trimEnd,
+      hasMoved: false,
     };
     window.addEventListener('pointermove', this.boundMove);
     window.addEventListener('pointerup', this.boundUp);
@@ -125,28 +161,75 @@ export class AudioTimeline {
 
   private onPointerMove(event: PointerEvent) {
     if (!this.dragState) return;
-    const ds = (event.clientX - this.dragState.startX) / this.pxPerSecond;
-    const p = this.pistas[this.dragState.pistaIndex];
     const d = this.dragState;
+    const dx = event.clientX - d.startX;
+    const dy = event.clientY - d.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) d.hasMoved = true;
+    if (!d.hasMoved) return;
+
+    const ds = dx / this.pxPerSecond;
+    const seg = this.pistas[d.srcPi]?.segmentos[d.si];
+    if (!seg) return;
 
     if (d.type === 'move') {
-      p.startTime = Math.max(0, d.origStartTime + ds);
+      seg.startTime = Math.max(0, d.origStartTime + ds);
+      const rowDelta = Math.round(dy / this.ROW_H);
+      d.targetPi = Math.max(0, Math.min(d.srcPi + rowDelta, this.pistas.length));
 
     } else if (d.type === 'trim-left') {
-      const maxTrim = p.duration - d.origTrimEnd - 0.05;
+      const maxTrim = seg.duration - d.origTrimEnd - 0.05;
       const newTrim = Math.max(0, Math.min(d.origTrimStart + ds, maxTrim));
-      p.startTime = Math.max(0, d.origStartTime + (newTrim - d.origTrimStart));
-      p.trimStart = newTrim;
+      seg.startTime = Math.max(0, d.origStartTime + (newTrim - d.origTrimStart));
+      seg.trimStart = newTrim;
 
     } else if (d.type === 'trim-right') {
-      const maxTrim = p.duration - d.origTrimStart - 0.05;
-      p.trimEnd = Math.max(0, Math.min(d.origTrimEnd - ds, maxTrim));
+      const maxTrim = seg.duration - d.origTrimStart - 0.05;
+      seg.trimEnd = Math.max(0, Math.min(d.origTrimEnd - ds, maxTrim));
     }
   }
 
   private onPointerUp() {
+    if (!this.dragState) return;
+    const d = this.dragState;
+
+    // Tap without movement = selection toggle
+    if (d.type === 'move' && !d.hasMoved) {
+      const same = this.selectedSeg?.pi === d.srcPi && this.selectedSeg?.si === d.si;
+      this.selectedSeg = same ? null : { pi: d.srcPi, si: d.si };
+      this.dragState = null;
+      window.removeEventListener('pointermove', this.boundMove);
+      window.removeEventListener('pointerup', this.boundUp);
+      return;
+    }
+
+    if (d.type === 'move' && d.targetPi !== d.srcPi) {
+      const src = this.pistas[d.srcPi];
+      if (src) {
+        const [seg] = src.segmentos.splice(d.si, 1);
+        if (d.targetPi >= this.pistas.length) {
+          this.pistas.push({
+            nombre: `Pista ${this.pistas.length + 1}`,
+            activa: true, color: src.color,
+            efectos: { ...src.efectos }, segmentos: [seg],
+          });
+        } else {
+          this.pistas[d.targetPi].segmentos.push(seg);
+        }
+        if (src.segmentos.length === 0) this.pistas.splice(d.srcPi, 1);
+      }
+      this.selectedSeg = null;
+    }
+
     this.dragState = null;
     window.removeEventListener('pointermove', this.boundMove);
     window.removeEventListener('pointerup', this.boundUp);
+  }
+
+  isDraggingOver(pi: number): boolean {
+    return !!(this.dragState?.type === 'move' && this.dragState?.targetPi === pi && this.dragState?.srcPi !== pi);
+  }
+
+  isNewRowTarget(): boolean {
+    return !!(this.dragState?.type === 'move' && this.dragState.targetPi >= this.pistas.length);
   }
 }

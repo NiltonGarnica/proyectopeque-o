@@ -10,12 +10,12 @@
     </div>
   </div>
 
-  <div class="tl-scroll" (click)="clearSelection()">
+  <div class="tl-scroll" (pointerdown)="clearSelection()">
 
     <!-- Regla de tiempo -->
     <div class="tl-row tl-ruler-row">
       <div class="tl-label-col tl-label-ruler"></div>
-      <div class="tl-content" [style.width.px]="timelineWidth" (click)="onRulerClick($event)">
+      <div class="tl-content" [style.width.px]="timelineWidth" (click)="onRulerClick($event)" (pointerdown)="$event.stopPropagation()">
         <div *ngFor="let t of rulerTicks" class="tl-tick" [style.left.px]="t * pxPerSecond">
           <span>{{ t }}s</span>
         </div>
@@ -44,10 +44,10 @@
           <div class="tl-handle" (pointerdown)="startTrim($event, pi, si, 'left')">
             <span>◀</span>
           </div>
-          <!-- Cuerpo (mover + seleccionar) -->
+          <!-- Cuerpo (mover + seleccionar con tap) -->
           <div class="tl-block-body"
                (pointerdown)="startMove($event, pi, si)"
-               (click)="selectSeg(pi, si, $event)">
+               [class.tl-selected-body]="selectedSeg?.pi === pi && selectedSeg?.si === si">
             <span class="tl-block-label">{{ s.nombre }}</span>
           </div>
           <!-- Handle derecho (trim) -->
