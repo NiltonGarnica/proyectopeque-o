@@ -112,8 +112,11 @@ export class AudioStudio implements OnDestroy {
       // Descargar y decodificar todas las pistas activas
       const buffers = await Promise.all(activas.map(async p => {
         const res = await fetch(p.url, { mode: 'cors' });
+        if (!res.ok) throw new Error(`Error al descargar pista: HTTP ${res.status}`);
         const arrayBuf = await res.arrayBuffer();
-        return audioCtx.decodeAudioData(arrayBuf);
+        return new Promise<AudioBuffer>((resolve, reject) => {
+          audioCtx.decodeAudioData(arrayBuf, resolve, reject);
+        });
       }));
 
       audioCtx.close();
