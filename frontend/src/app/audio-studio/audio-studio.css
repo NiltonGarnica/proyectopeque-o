@@ -201,6 +201,53 @@
   text-align: right;
 }
 
+/* HISTORIAL */
+.historial {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 12px rgba(0,0,0,0.3);
+}
+
+.historial h3 {
+  margin: 0 0 16px;
+  font-size: 1em;
+  color: #cbd5e1;
+}
+
+.mezcla-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  border-left: 3px solid #7c3aed;
+}
+
+.mezcla-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mezcla-nombre {
+  font-size: 0.9em;
+  color: #cbd5e1;
+}
+
+.mezcla-fecha {
+  font-size: 0.75em;
+  color: #475569;
+}
+
+.mezcla-acciones {
+  display: flex;
+  gap: 6px;
+}
+
 .empty-hint {
   text-align: center;
   color: #475569;

@@ -1,4 +1,4 @@
-import { Component, NgZone, OnDestroy } from '@angular/core';
+import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
 
@@ -11,13 +11,20 @@ interface Pista {
   esMezcla?: boolean;
 }
 
+interface MezclaGuardada {
+  _id: string;
+  url: string;
+  nombre: string;
+  fecha: string;
+}
+
 @Component({
   selector: 'app-audio-studio',
   standalone: false,
   templateUrl: './audio-studio.html',
   styleUrl: './audio-studio.css',
 })
-export class AudioStudio implements OnDestroy {
+export class AudioStudio implements OnInit, OnDestroy {
 
   pistas: Pista[] = [];
   playerSrc = '';
@@ -25,9 +32,15 @@ export class AudioStudio implements OnDestroy {
   exportando = false;
   mensajeExport = '';
 
+  mezclas: MezclaGuardada[] = [];
+
   private audioElements: HTMLAudioElement[] = [];
 
   constructor(public auth: AuthService, private zone: NgZone, private http: HttpClient) {}
+
+  ngOnInit() {
+    this.cargarMezclas();
+  }
 
   ngOnDestroy() {
     this.detenerTodas();
@@ -169,6 +182,7 @@ export class AudioStudio implements OnDestroy {
               esMezcla: true
             });
             this.playerSrc = res.url;
+            this.cargarMezclas();
           });
         },
         error: () => {
@@ -186,6 +200,32 @@ export class AudioStudio implements OnDestroy {
         console.error(err);
       });
     }
+  }
+
+  cargarMezclas() {
+    this.http.get<MezclaGuardada[]>(`${API}/api/mezclas`).subscribe({
+      next: (data) => this.mezclas = data,
+      error: () => {}
+    });
+  }
+
+  eliminarMezcla(id: string) {
+    this.http.delete(`${API}/api/mezclas/${id}`).subscribe({
+      next: () => this.mezclas = this.mezclas.filter(m => m._id !== id),
+      error: () => {}
+    });
+  }
+
+  descargarMezcla(url: string, nombre: string) {
+    fetch(url, { mode: 'cors' })
+      .then(r => r.blob())
+      .then(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${nombre}.wav`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
   }
 
   // --- WAV encoder ---

@@ -73,4 +73,20 @@
     <p>Empieza grabando tu voz. Puedes agregar tantas pistas como quieras y escucharlas todas juntas. 🎶</p>
   </div>
 
+  <!-- HISTORIAL DE MEZCLAS -->
+  <div class="historial" *ngIf="mezclas.length > 0">
+    <h3>📂 Mis Mezclas Guardadas</h3>
+    <div class="mezcla-item" *ngFor="let m of mezclas">
+      <div class="mezcla-info">
+        <span class="mezcla-nombre">🎚 {{ m.nombre }}</span>
+        <span class="mezcla-fecha">{{ m.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      <div class="mezcla-acciones">
+        <button class="btn-preview" (click)="previsualizarPista(m.url)" title="Escuchar">▶</button>
+        <button class="btn-dup" (click)="descargarMezcla(m.url, m.nombre)" title="Descargar">⬇</button>
+        <button class="btn-del" (click)="eliminarMezcla(m._id)" title="Eliminar">✕</button>
+      </div>
+    </div>
+  </div>
+
 </div>
