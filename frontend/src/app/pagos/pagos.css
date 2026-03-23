@@ -1,0 +1,138 @@
+.page {
+  width: 620px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.btn-back {
+  background: #334155;
+}
+
+.btn-back:hover {
+  background: #475569;
+}
+
+.resumen-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.resumen-card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border-left: 4px solid #475569;
+}
+
+.resumen-card.verde {
+  border-left-color: #22c55e;
+}
+
+.resumen-card.amarillo {
+  border-left-color: #f59e0b;
+}
+
+.resumen-label {
+  font-size: 0.8em;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.resumen-valor {
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 12px rgba(0,0,0,0.3);
+}
+
+.card label {
+  display: block;
+  font-size: 0.85em;
+  color: #94a3b8;
+  margin: 10px 0 4px;
+}
+
+.card input,
+.card select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #0f172a;
+  color: white;
+  box-sizing: border-box;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pago-item {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pago-monto {
+  font-size: 1.3em;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.pago-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.85em;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.pago-fecha {
+  font-size: 0.78em;
+  color: #64748b;
+}
+
+.metodo-badge {
+  background: #334155;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  text-transform: capitalize;
+  color: #cbd5e1;
+}
+
+.referencia {
+  font-style: italic;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+  font-weight: bold;
+  color: white;
+  white-space: nowrap;
+}

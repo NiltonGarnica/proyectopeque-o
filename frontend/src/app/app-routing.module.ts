@@ -4,13 +4,15 @@ import { LoginComponent } from './login/login.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { Register } from './register/register';
 import { Proyectos } from './proyectos/proyectos';
+import { Pagos } from './pagos/pagos';
 import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
   { path: '', component: LoginComponent },
   { path: 'register', component: Register },
   { path: 'dashboard', component: DashboardComponent, canActivate: [AuthGuard] },
-  { path: 'proyectos', component: Proyectos, canActivate: [AuthGuard] }
+  { path: 'proyectos', component: Proyectos, canActivate: [AuthGuard] },
+  { path: 'pagos', component: Pagos, canActivate: [AuthGuard] }
 ];
 
 @NgModule({

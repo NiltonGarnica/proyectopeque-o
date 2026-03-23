@@ -1,0 +1,84 @@
+<div class="page">
+
+  <!-- CABECERA -->
+  <div class="page-header">
+    <h2>Mis Pagos</h2>
+    <div style="display:flex; gap:10px">
+      <button (click)="mostrarFormulario = !mostrarFormulario">
+        {{ mostrarFormulario ? 'Cancelar' : '+ Registrar Pago' }}
+      </button>
+      <button class="btn-back" routerLink="/dashboard">Volver</button>
+    </div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="resumen-grid">
+    <div class="resumen-card">
+      <div class="resumen-label">Total de pagos</div>
+      <div class="resumen-valor">{{ pagos.length }}</div>
+    </div>
+    <div class="resumen-card verde">
+      <div class="resumen-label">Total pagado</div>
+      <div class="resumen-valor">${{ totalPagado() | number:'1.2-2' }}</div>
+    </div>
+    <div class="resumen-card amarillo">
+      <div class="resumen-label">Pendientes</div>
+      <div class="resumen-valor">{{ totalPendientes() }}</div>
+    </div>
+  </div>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+  <p class="exito" *ngIf="exito">{{ exito }}</p>
+
+  <!-- FORMULARIO NUEVO PAGO -->
+  <div class="card" *ngIf="mostrarFormulario">
+    <h3>Registrar Pago</h3>
+
+    <label>Monto</label>
+    <input [(ngModel)]="monto" type="number" placeholder="0.00" min="0">
+
+    <label>Método de pago</label>
+    <select [(ngModel)]="metodo">
+      <option *ngFor="let m of metodos" [value]="m">{{ m }}</option>
+    </select>
+
+    <label>Referencia (opcional)</label>
+    <input [(ngModel)]="referencia" placeholder="Número de transacción, recibo, etc.">
+
+    <label>Vincular a reserva (opcional)</label>
+    <select [(ngModel)]="reservaId">
+      <option value="">— Sin reserva —</option>
+      <option *ngFor="let r of reservas" [value]="r._id">
+        {{ r.servicio }} — {{ r.fecha | date:'dd/MM/yyyy' }}
+      </option>
+    </select>
+
+    <label>Vincular a proyecto (opcional)</label>
+    <select [(ngModel)]="proyectoId">
+      <option value="">— Sin proyecto —</option>
+      <option *ngFor="let p of proyectos" [value]="p._id">{{ p.titulo }}</option>
+    </select>
+
+    <button (click)="registrarPago()">Confirmar pago</button>
+  </div>
+
+  <!-- LISTA DE PAGOS -->
+  <div class="lista">
+    <div class="pago-item" *ngFor="let p of pagos">
+      <div class="pago-info">
+        <div class="pago-monto">${{ p.monto | number:'1.2-2' }}</div>
+        <div class="pago-meta">
+          <span class="metodo-badge">{{ p.metodo }}</span>
+          <span *ngIf="p.reservaId">Reserva: {{ p.reservaId.servicio }}</span>
+          <span *ngIf="p.proyectoId">Proyecto: {{ p.proyectoId.titulo }}</span>
+          <span *ngIf="p.referencia" class="referencia">Ref: {{ p.referencia }}</span>
+        </div>
+        <div class="pago-fecha">{{ p.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+      </div>
+      <span class="badge" [style.background]="estadoColor(p.estado)">{{ p.estado }}</span>
+    </div>
+  </div>
+
+  <p *ngIf="pagos.length === 0 && !mostrarFormulario">No tienes pagos registrados aún.</p>
+
+</div>
