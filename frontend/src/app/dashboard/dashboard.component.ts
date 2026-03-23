@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../services/auth.service';
+
+const API = 'https://proyectopeque-o.onrender.com';
 
 @Component({
   selector: 'app-dashboard',
@@ -8,31 +11,43 @@ import { HttpClient } from '@angular/common/http';
 })
 export class DashboardComponent implements OnInit {
 
-  texto = '';
-  actividades: any[] = [];
-  userId = '';
+  reservas: any[] = [];
+  servicio = 'grabacion';
+  fecha = '';
+  duracionHoras = 1;
+  notas = '';
 
-  constructor(private http: HttpClient) {}
+  servicios = ['grabacion', 'mezcla', 'masterizacion', 'produccion'];
+
+  constructor(private http: HttpClient, public auth: AuthService) {}
 
   ngOnInit() {
-    this.userId = localStorage.getItem('userId') || '';
-    this.cargarActividades();
+    this.cargarReservas();
   }
 
-  crearActividad() {
-    this.http.post('https://proyectopeque-o.onrender.com/actividad', {
-      texto: this.texto,
-      userId: this.userId
+  cargarReservas() {
+    const userId = this.auth.getUserId();
+    this.http.get<any[]>(`${API}/reservas/cliente/${userId}`)
+      .subscribe(res => this.reservas = res);
+  }
+
+  crearReserva() {
+    const clienteId = this.auth.getUserId();
+    this.http.post(`${API}/reservas`, {
+      clienteId,
+      servicio: this.servicio,
+      fecha: this.fecha,
+      duracionHoras: this.duracionHoras,
+      notas: this.notas
     }).subscribe(() => {
-      this.texto = '';
-      this.cargarActividades();
+      this.fecha = '';
+      this.notas = '';
+      this.duracionHoras = 1;
+      this.cargarReservas();
     });
   }
 
-  cargarActividades() {
-    this.http.get<any[]>(`https://proyectopeque-o.onrender.com/actividades/${this.userId}`)
-      .subscribe(res => {
-        this.actividades = res;
-      });
+  logout() {
+    this.auth.logout();
   }
 }

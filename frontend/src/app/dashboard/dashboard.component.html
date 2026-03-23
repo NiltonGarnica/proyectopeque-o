@@ -1,12 +1,24 @@
-<div class="container">
-  <h2>Dashboard</h2>
+<div class="container dashboard">
+  <div class="header">
+    <h2>Bienvenido, {{ auth.getNombre() }}</h2>
+    <button class="btn-logout" (click)="logout()">Cerrar sesión</button>
+  </div>
 
-  <input [(ngModel)]="texto" placeholder="Nueva actividad">
-  <button (click)="crearActividad()">Agregar</button>
+  <h3>Nueva Reserva</h3>
+  <select [(ngModel)]="servicio">
+    <option *ngFor="let s of servicios" [value]="s">{{ s }}</option>
+  </select>
+  <input [(ngModel)]="fecha" type="datetime-local">
+  <input [(ngModel)]="duracionHoras" type="number" placeholder="Duración (horas)" min="1">
+  <input [(ngModel)]="notas" placeholder="Notas (opcional)">
+  <button (click)="crearReserva()">Crear reserva</button>
 
+  <h3>Mis Reservas</h3>
   <ul>
-    <li *ngFor="let act of actividades">
-      {{ act.texto }}
+    <li *ngFor="let r of reservas">
+      <strong>{{ r.servicio }}</strong> — {{ r.fecha | date:'dd/MM/yyyy HH:mm' }}
+      — {{ r.duracionHoras }}h — <span class="estado">{{ r.estado }}</span>
     </li>
   </ul>
+  <p *ngIf="reservas.length === 0">No tienes reservas aún.</p>
 </div>

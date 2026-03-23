@@ -1,8 +1,11 @@
 <div class="container">
-  <h2>Login</h2>
+  <h2>Powersound</h2>
+  <p>Inicia sesión para continuar</p>
 
-  <input [(ngModel)]="correo" placeholder="Correo">
+  <input [(ngModel)]="correo" placeholder="Correo" type="email">
   <input [(ngModel)]="password" type="password" placeholder="Contraseña">
 
-  <button (click)="login()">Login</button>
+  <p class="error" *ngIf="error">{{ error }}</p>
+
+  <button (click)="login()">Iniciar sesión</button>
 </div>

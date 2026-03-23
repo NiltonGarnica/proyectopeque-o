@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -11,16 +11,15 @@ export class LoginComponent {
 
   correo = '';
   password = '';
+  error = '';
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router) {}
 
   login() {
-  this.http.post<any>('https://proyectopeque-o.onrender.com/login', {
-    correo: this.correo,
-    contraseña: this.password // 👈 aquí sí puedes dejar ñ porque es JSON
-  }).subscribe(res => {
-    localStorage.setItem('userId', res.userId);
-    this.router.navigate(['/dashboard']);
-  });
-}
+    this.error = '';
+    this.auth.login(this.correo, this.password).subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: () => this.error = 'Correo o contraseña incorrectos'
+    });
+  }
 }

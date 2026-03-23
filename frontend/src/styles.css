@@ -1,13 +1,12 @@
-/* You can add global styles to this file, and also import other style files */
 body {
   font-family: Arial, sans-serif;
   background: linear-gradient(135deg, #0f172a, #1e293b);
   color: white;
+  margin: 0;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
+  align-items: flex-start;
 }
 
 .container {
@@ -16,15 +15,31 @@ body {
   border-radius: 12px;
   box-shadow: 0 0 20px rgba(0,0,0,0.5);
   text-align: center;
+  margin-top: 60px;
 }
 
-input {
+.dashboard {
+  width: 500px;
+  text-align: left;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+input, select {
   display: block;
-  width: 250px;
-  margin: 10px auto;
+  width: 100%;
+  margin: 8px 0;
   padding: 10px;
   border-radius: 8px;
   border: none;
+  box-sizing: border-box;
+  background: #0f172a;
+  color: white;
 }
 
 button {
@@ -34,8 +49,40 @@ button {
   background: #22c55e;
   color: white;
   cursor: pointer;
+  margin-top: 8px;
 }
 
 button:hover {
   background: #16a34a;
+}
+
+.btn-logout {
+  background: #ef4444;
+  margin-top: 0;
+}
+
+.btn-logout:hover {
+  background: #dc2626;
+}
+
+.error {
+  color: #f87171;
+  font-size: 0.9em;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  background: #0f172a;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin: 6px 0;
+}
+
+.estado {
+  color: #22c55e;
+  font-weight: bold;
 }
