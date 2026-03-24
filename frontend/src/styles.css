@@ -7,6 +7,11 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  overflow-x: hidden;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
 .container {

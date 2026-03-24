@@ -1,7 +1,9 @@
 .page {
-  width: 700px;
+  width: 100%;
+  max-width: 700px;
   margin: 40px auto;
   padding: 0 16px;
+  box-sizing: border-box;
 }
 
 .page-header {
@@ -130,4 +132,13 @@
 
 .btn-eliminar:hover {
   background: #dc2626;
+}
+
+@media (max-width: 640px) {
+  .page { margin: 12px auto; }
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tabs { flex-wrap: wrap; }
+  .tabla-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .tabla-acciones { width: 100%; justify-content: flex-end; }
+  .tabla-acciones select { flex: 1; }
 }
