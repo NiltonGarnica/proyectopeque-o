@@ -10,11 +10,10 @@
   display: flex;
   flex-direction: column;
   font-family: 'Courier New', Courier, monospace;
-  color: #00ff41;
+  color: #00ff00;
   box-sizing: border-box;
 }
 
-/* ── Header ─────────────────────────────────── */
 .term-header {
   display: flex;
   align-items: center;
@@ -56,92 +55,39 @@
 
 .term-btn {
   background: transparent;
-  border: 1px solid #00ff41;
-  color: #00ff41;
+  border: 1px solid #00ff00;
+  color: #00ff00;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.78em;
   padding: 4px 12px;
   border-radius: 4px;
   cursor: pointer;
 }
-.term-btn:hover { background: #00ff41; color: #000; }
+.term-btn:hover { background: #00ff00; color: #000; }
 
-/* ── Status lines (system messages) ─────────── */
-.term-status {
-  padding: 8px 16px 4px;
-  border-bottom: 1px solid #0d2e0d;
-  flex-shrink: 0;
-}
-
-.term-status-line {
-  font-size: 0.78em;
-  color: #3a9a3a;
-  line-height: 1.5;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ── User table body ─────────────────────────── */
-.term-body {
+.term-log {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
-  padding: 10px 16px 16px;
+  overflow-x: auto;
+  padding: 14px 18px;
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
-.term-body::-webkit-scrollbar { width: 6px; }
-.term-body::-webkit-scrollbar-track { background: #000; }
-.term-body::-webkit-scrollbar-thumb { background: #1a4a1a; border-radius: 3px; }
+.term-log::-webkit-scrollbar { width: 6px; height: 6px; }
+.term-log::-webkit-scrollbar-track { background: #000; }
+.term-log::-webkit-scrollbar-thumb { background: #1a4a1a; border-radius: 3px; }
 
-/* ── Grid row ────────────────────────────────── */
-.term-row {
-  display: grid;
-  grid-template-columns: 22% 14% 18% 28% 18%;
-  gap: 0;
-  font-size: 0.82em;
-  line-height: 1.8;
-  border-bottom: 1px solid #0a1e0a;
+.term-line {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.83em;
+  line-height: 1.6;
+  white-space: pre;
+  color: #00ff00;
 }
 
-.term-row-header {
-  color: #008a24;
-  font-size: 0.72em;
-  letter-spacing: 0.08em;
-  border-bottom: 1px solid #1a4a1a;
-  margin-bottom: 2px;
-}
-
-.term-row span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 2px 4px;
-}
-
-.col-time {
-  color: #88ff88;
-  text-align: right;
-  padding-right: 8px;
-}
-
-/* ── Empty state ─────────────────────────────── */
-.term-empty {
-  color: #2a6a2a;
-  font-size: 0.8em;
-  padding: 20px 4px;
-  text-align: center;
-}
-
-/* ── Mobile ──────────────────────────────────── */
 @media (max-width: 640px) {
-  .term-row {
-    grid-template-columns: 30% 0 20% 36% 14%;
-    font-size: 0.72em;
-  }
-  .col-ip { display: none; }
+  .term-line { font-size: 0.7em; }
   .term-name { display: none; }
 }
