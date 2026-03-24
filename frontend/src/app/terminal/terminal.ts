@@ -1,17 +1,7 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { timeout } from 'rxjs/operators';
 
 const API = 'https://proyectopeque-o.onrender.com';
-
-interface UserActivity {
-  email: string;
-  ip: string;
-  city: string;
-  country: string;
-  page: string;
-  timeOnSite: number;
-}
 
 @Component({
   selector: 'app-terminal',
@@ -20,103 +10,88 @@ interface UserActivity {
   styleUrl: './terminal.css',
 })
 export class Terminal implements OnInit, OnDestroy {
-  @ViewChild('logEl') logEl!: ElementRef<HTMLDivElement>;
 
   lines: string[] = [];
-  status = 'Conectando...';
-  private intervalId: any = null;
-  private pingOk = false;
+  private timer: any = null;
+  private ready = false;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private cd: ChangeDetectorRef) {}
 
   ngOnInit() {
-    this.addLine('▶ Terminal Powersound iniciada...');
-    this.checkBackend();
-    this.intervalId = setInterval(() => this.fetch(), 3000);
+    this.log('▶ Terminal iniciada. Verificando servidor...');
+    this.wakeBackend();
   }
 
   ngOnDestroy() {
-    if (this.intervalId) clearInterval(this.intervalId);
+    if (this.timer) clearInterval(this.timer);
   }
 
-  // Verifica que el backend esté vivo primero
-  private checkBackend() {
-    this.addLine('▶ Verificando conexión con el servidor...');
-    this.http.get(`${API}/`).pipe(timeout(12000)).subscribe({
+  // Espera a que el backend responda (free-tier puede tardar ~30s)
+  private wakeBackend() {
+    this.http.get(`${API}/`).subscribe({
       next: () => {
-        this.addLine('▶ Servidor OK. Escuchando usuarios activos...');
-        this.status = 'EN VIVO';
-        this.pingOk = true;
-        this.fetch();
+        this.log('▶ Servidor activo. Escuchando usuarios...');
+        this.ready = true;
+        this.poll();
+        this.timer = setInterval(() => this.poll(), 3000);
       },
-      error: (err) => {
-        const msg = err.name === 'TimeoutError'
-          ? 'Servidor tardó demasiado en responder (free tier despertando). Reintentando...'
-          : `Error de conexión: ${err.status || err.message}`;
-        this.addLine(`▶ ⚠ ${msg}`);
-        this.status = 'Reconectando...';
-        // Reintenta en 10s
-        setTimeout(() => this.checkBackend(), 10000);
+      error: (e) => {
+        this.log(`▶ Servidor no responde (${e.status || 'timeout'}). Reintentando en 8s...`);
+        setTimeout(() => this.wakeBackend(), 8000);
       }
     });
   }
 
-  private fetch() {
-    if (!this.pingOk) return;
-    this.http.get<UserActivity[]>(`${API}/api/activity/realtime-users`)
-      .pipe(timeout(8000))
-      .subscribe({
-        next: (users) => {
-          this.status = 'EN VIVO';
-          const ts = this.timestamp();
-          if (!users || users.length === 0) {
-            this.addLine(`[${ts}] — Sin usuarios activos`);
-          } else {
-            this.addLine(`[${ts}] ● ${users.length} usuario(s) activo(s):`);
-            users.forEach(u => {
-              const time  = this.formatTime(u.timeOnSite);
-              const email = u.email || '(sin email — re-inicia sesión)';
-              const loc   = (u.city && u.city !== '?') ? `${u.city}, ${u.country}` : u.ip;
-              this.addLine(`  └─ ${email}  |  ${u.ip}  |  ${loc}  |  ${u.page}  |  ⏱ ${time}`);
-            });
-          }
-        },
-        error: (err) => {
-          this.status = 'Error';
-          const msg = err.name === 'TimeoutError' ? 'timeout' : `HTTP ${err.status}`;
-          this.addLine(`[${this.timestamp()}] ✖ Error (${msg}) — reintentando...`);
-          if (err.status === 401 || err.status === 403) {
-            this.addLine('  └─ Asegúrate de estar logueado como admin');
-            this.pingOk = false;
+  private poll() {
+    this.http.get<any[]>(`${API}/api/activity/realtime-users`).subscribe({
+      next: (users) => {
+        const t = this.ts();
+        if (!users || users.length === 0) {
+          this.log(`[${t}] Sin usuarios activos`);
+        } else {
+          this.log(`[${t}] ● ${users.length} usuario(s):`);
+          for (const u of users) {
+            const loc  = u.city && u.city !== '?' ? `${u.city}, ${u.country}` : u.ip;
+            const time = this.fmt(u.timeOnSite);
+            this.log(`  ${u.email || '?'}  |  ${u.ip}  |  ${loc}  |  ${u.page}  |  ${time}`);
           }
         }
-      });
+      },
+      error: (e) => {
+        this.log(`[${this.ts()}] Error ${e.status}: ${e.statusText || e.message}`);
+        if (e.status === 401 || e.status === 403) {
+          this.log('  → Cierra sesión y vuelve a entrar como admin.');
+          this.ready = false;
+          if (this.timer) { clearInterval(this.timer); this.timer = null; }
+        }
+      }
+    });
   }
 
-  private addLine(text: string) {
-    this.lines.push(text);
-    if (this.lines.length > 200) this.lines.shift();
+  private log(text: string) {
+    this.lines = [...this.lines, text];
+    if (this.lines.length > 300) this.lines = this.lines.slice(-300);
+    this.cd.detectChanges();
+    // scroll al fondo
     setTimeout(() => {
-      const el = this.logEl?.nativeElement;
+      const el = document.querySelector('.term-log');
       if (el) el.scrollTop = el.scrollHeight;
-    }, 0);
+    }, 20);
   }
 
-  private timestamp(): string {
-    const d = new Date();
-    return [d.getHours(), d.getMinutes(), d.getSeconds()]
-      .map(n => String(n).padStart(2, '0')).join(':');
+  private ts(): string {
+    return new Date().toTimeString().slice(0, 8);
   }
 
-  private formatTime(ms: number): string {
-    if (ms < 1000) return '< 1s';
+  private fmt(ms: number): string {
+    if (!ms || ms < 1000) return '< 1s';
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);
     return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
   }
 
-  clearTerminal() {
+  clear() {
     this.lines = [];
-    this.addLine('▶ Terminal limpiada.');
+    this.log('▶ Terminal limpiada.');
   }
 }
