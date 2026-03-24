@@ -69,13 +69,13 @@
             title="{{ p.activa ? 'Silenciar' : 'Activar' }}">
             {{ p.activa ? '🔊' : '🔇' }}
           </button>
-          <button class="btn-fx" [class.active]="p.mostrarEfectos" (click)="p.mostrarEfectos = !p.mostrarEfectos" title="Efectos">🎛</button>
           <button class="btn-dup" (click)="duplicarPista(p)" title="Duplicar pista">📋</button>
           <button class="btn-del" (click)="eliminarPista(i)" title="Eliminar pista">✕</button>
         </div>
       </div>
 
-      <div class="efectos-panel" *ngIf="p.mostrarEfectos">
+      <!-- Efectos siempre visibles -->
+      <div class="efectos-panel">
         <div class="live-badge" *ngIf="reproduciendo && p.activa">🔴 EN VIVO</div>
         <div class="efecto-row">
           <label>Vol</label>
