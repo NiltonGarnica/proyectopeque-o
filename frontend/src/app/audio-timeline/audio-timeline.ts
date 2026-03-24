@@ -42,7 +42,7 @@ export class AudioTimeline implements DoCheck, OnDestroy {
 
   pxPerSecond = 80;
   readonly LABEL_W = 80;
-  readonly ROW_H = 52;
+  readonly ROW_H = 72;
 
   selectedSeg: { pi: number; si: number } | null = null;
 
@@ -333,5 +333,10 @@ export class AudioTimeline implements DoCheck, OnDestroy {
 
   isNewRowTarget(): boolean {
     return !!(this.dragState?.type === 'move' && this.dragState.targetPi >= this.pistas.length);
+  }
+
+  get emptyRows(): number[] {
+    const count = Math.max(0, 10 - this.pistas.length);
+    return Array.from({ length: count }, (_, i) => i);
   }
 }

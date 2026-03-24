@@ -64,6 +64,14 @@
       </div>
     </div>
 
+    <!-- Filas vacías (placeholder hasta 10 pistas) -->
+    <div class="tl-row tl-track-row tl-empty-row" *ngFor="let e of emptyRows">
+      <div class="tl-label-col tl-label-empty">
+        <span class="tl-label-name tl-label-ghost">Pista {{ pistas.length + e + 1 }}</span>
+      </div>
+      <div class="tl-content tl-content-empty" [style.width.px]="timelineWidth"></div>
+    </div>
+
     <!-- Indicador de nueva pista -->
     <div class="tl-row tl-new-row" *ngIf="isNewRowTarget()">
       <div class="tl-label-col tl-label-new">+ nueva pista</div>

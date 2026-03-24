@@ -51,8 +51,9 @@
 .tl-scroll {
   position: relative;
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: auto;
   background: #0f172a;
+  min-height: 752px; /* ruler(32) + 10 rows(72*10=720) */
 }
 
 /* ROWS */
@@ -150,20 +151,40 @@
 
 /* TRACK ROWS */
 .tl-track-row {
-  height: 52px;
+  height: 72px;
   border-bottom: 1px solid #1a2640;
 }
 
 .tl-track-row .tl-content {
   position: relative;
-  height: 52px;
+  height: 72px;
+}
+
+/* EMPTY PLACEHOLDER ROWS */
+.tl-empty-row {
+  opacity: 0.35;
+}
+
+.tl-label-ghost {
+  font-style: italic;
+  color: #475569;
+}
+
+.tl-content-empty {
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 39px,
+    #1e293b 39px,
+    #1e293b 40px
+  );
 }
 
 /* TRACK BLOCK */
 .tl-block {
   position: absolute;
-  top: 7px;
-  height: 38px;
+  top: 10px;
+  height: 52px;
   border-radius: 6px;
   display: flex;
   align-items: stretch;
