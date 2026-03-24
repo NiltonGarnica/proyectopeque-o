@@ -512,8 +512,9 @@
 /* ===== RESPONSIVE ===== */
 @media (max-width: 640px) {
   .studio-page {
-    margin: 12px auto;
-    padding: 0 10px;
+    margin: 0 auto;
+    padding: 0 8px;
+    max-width: 100%;
   }
 
   .studio-header h2 {
@@ -602,4 +603,41 @@
     font-size: 0.85em;
     padding: 10px 14px;
   }
+
+  .speed-row {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .speed-row label { min-width: unset; }
+
+  .pista-nombre {
+    font-size: 0.82em;
+  }
+
+  .karaoke-top {
+    gap: 8px;
+  }
+
+  .karaoke-efectos .efecto-row {
+    width: 100%;
+  }
+
+  .karaoke-efectos .efecto-row input[type="range"] {
+    flex: 1;
+    width: auto;
+    min-width: 80px;
+  }
+
+  .studio-card {
+    padding: 14px 12px;
+  }
+
+  .mixer {
+    padding: 12px 10px;
+  }
+
+  h2 { font-size: 1em; }
+  h3 { font-size: 0.95em; }
 }

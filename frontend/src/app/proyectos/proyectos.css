@@ -167,10 +167,12 @@
 }
 
 @media (max-width: 640px) {
-  .page { margin: 12px auto; }
+  .page { margin: 0 auto; padding: 0 10px; max-width: 100%; }
   .page-header { flex-wrap: wrap; gap: 8px; }
-  .proyecto-grid { grid-template-columns: 1fr; }
+  .page-header h2 { font-size: 1em; }
+  .proyecto-grid { grid-template-columns: 1fr; gap: 10px; }
   .detalle-header { flex-direction: column; align-items: flex-start; gap: 6px; }
   .upload-area { flex-direction: column; align-items: flex-start; }
   .archivos li { flex-wrap: wrap; }
+  .card { padding: 14px 12px; }
 }

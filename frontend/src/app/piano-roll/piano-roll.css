@@ -262,6 +262,12 @@
 /* RESPONSIVE */
 @media (max-width: 640px) {
   .pr-key-hint { display: none; }
-  .pr-key { width: 64px; min-width: 64px; }
-  .pr-scroll { height: 300px; }
+  .pr-key { width: 58px; min-width: 58px; }
+  .pr-scroll { height: 260px; }
+  .pr-toolbar { padding: 8px 10px; gap: 6px; }
+  .pr-oct-controls { padding: 3px 6px; }
+  .pr-oct-label { min-width: 60px; font-size: 0.75em; }
+  .pr-btn { padding: 5px 9px; font-size: 0.78em; }
+  .pr-btn-oct { padding: 3px 7px; }
+  .pr-container { margin-top: 14px; }
 }

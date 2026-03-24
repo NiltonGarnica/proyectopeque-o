@@ -135,10 +135,14 @@
 }
 
 @media (max-width: 640px) {
-  .page { margin: 12px auto; }
+  .page { margin: 0 auto; padding: 0 10px; max-width: 100%; }
+  .page-header { flex-wrap: wrap; gap: 8px; }
+  .page-header h2 { font-size: 1em; }
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tabs { flex-wrap: wrap; }
+  .stat-valor { font-size: 1.2em; }
+  .tabs { flex-wrap: wrap; gap: 6px; }
+  .tabs button { flex: 1; font-size: 0.85em; padding: 8px 10px; }
   .tabla-item { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .tabla-acciones { width: 100%; justify-content: flex-end; }
-  .tabla-acciones select { flex: 1; }
+  .tabla-acciones { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+  .tabla-acciones select { flex: 1; min-width: 0; }
 }
