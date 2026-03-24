@@ -74,6 +74,17 @@ export class Admin implements OnInit {
     });
   }
 
+  openTerminal() {
+    const w = 900, h = 600;
+    const left = Math.round((screen.width - w) / 2);
+    const top  = Math.round((screen.height - h) / 2);
+    window.open(
+      '/admin/terminal',
+      'terminalWindow',
+      `width=${w},height=${h},left=${left},top=${top},resizable=yes`
+    );
+  }
+
   totalPagos(): number {
     return this.pagos.filter(p => p.estado === 'completado').reduce((s, p) => s + p.monto, 0);
   }
