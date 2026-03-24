@@ -13,8 +13,35 @@
     </div>
   </div>
 
-  <div class="term-log">
-    <div *ngFor="let line of lines" class="term-line">{{ line }}</div>
+  <!-- Status / system messages -->
+  <div class="term-status">
+    <div *ngFor="let line of statusLines" class="term-status-line">{{ line }}</div>
+  </div>
+
+  <!-- Live user table -->
+  <div class="term-body">
+    <!-- Header row -->
+    <div class="term-row term-row-header">
+      <span class="col-email">EMAIL</span>
+      <span class="col-ip">IP</span>
+      <span class="col-loc">CIUDAD</span>
+      <span class="col-page">PÁGINA</span>
+      <span class="col-time">TIEMPO</span>
+    </div>
+
+    <!-- No users -->
+    <div *ngIf="users.length === 0" class="term-empty">
+      Sin usuarios activos en este momento
+    </div>
+
+    <!-- One row per user -->
+    <div *ngFor="let u of users" class="term-row">
+      <span class="col-email">{{ u.email }}</span>
+      <span class="col-ip">{{ u.ip }}</span>
+      <span class="col-loc">{{ u.loc }}</span>
+      <span class="col-page">{{ u.page }}</span>
+      <span class="col-time">{{ u.elapsed }}</span>
+    </div>
   </div>
 
 </div>

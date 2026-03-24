@@ -14,6 +14,7 @@
   box-sizing: border-box;
 }
 
+/* ── Header ─────────────────────────────────── */
 .term-header {
   display: flex;
   align-items: center;
@@ -62,33 +63,85 @@
   padding: 4px 12px;
   border-radius: 4px;
   cursor: pointer;
-  margin-top: 0;
 }
 .term-btn:hover { background: #00ff41; color: #000; }
 
-.term-log {
+/* ── Status lines (system messages) ─────────── */
+.term-status {
+  padding: 8px 16px 4px;
+  border-bottom: 1px solid #0d2e0d;
+  flex-shrink: 0;
+}
+
+.term-status-line {
+  font-size: 0.78em;
+  color: #3a9a3a;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── User table body ─────────────────────────── */
+.term-body {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 18px;
+  overflow-x: hidden;
+  padding: 10px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  min-height: 200px;
+  gap: 0;
 }
 
-.term-log::-webkit-scrollbar { width: 6px; }
-.term-log::-webkit-scrollbar-track { background: #000; }
-.term-log::-webkit-scrollbar-thumb { background: #1a4a1a; border-radius: 3px; }
+.term-body::-webkit-scrollbar { width: 6px; }
+.term-body::-webkit-scrollbar-track { background: #000; }
+.term-body::-webkit-scrollbar-thumb { background: #1a4a1a; border-radius: 3px; }
 
-.term-line {
-  font-size: 0.83em;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: #00ff41;
+/* ── Grid row ────────────────────────────────── */
+.term-row {
+  display: grid;
+  grid-template-columns: 22% 14% 18% 28% 18%;
+  gap: 0;
+  font-size: 0.82em;
+  line-height: 1.8;
+  border-bottom: 1px solid #0a1e0a;
 }
 
+.term-row-header {
+  color: #008a24;
+  font-size: 0.72em;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid #1a4a1a;
+  margin-bottom: 2px;
+}
+
+.term-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 4px;
+}
+
+.col-time {
+  color: #88ff88;
+  text-align: right;
+  padding-right: 8px;
+}
+
+/* ── Empty state ─────────────────────────────── */
+.term-empty {
+  color: #2a6a2a;
+  font-size: 0.8em;
+  padding: 20px 4px;
+  text-align: center;
+}
+
+/* ── Mobile ──────────────────────────────────── */
 @media (max-width: 640px) {
-  .term-line { font-size: 0.72em; }
+  .term-row {
+    grid-template-columns: 30% 0 20% 36% 14%;
+    font-size: 0.72em;
+  }
+  .col-ip { display: none; }
   .term-name { display: none; }
 }

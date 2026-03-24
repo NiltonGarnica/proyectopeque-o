@@ -3,6 +3,16 @@ import { HttpClient } from '@angular/common/http';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
+interface DisplayUser {
+  email: string;
+  ip: string;
+  loc: string;
+  page: string;
+  firstVisit: number;   // ms epoch from server
+  lastActive: number;   // ms epoch from server (updated each poll)
+  elapsed: string;      // formatted locally every tick
+}
+
 @Component({
   selector: 'app-terminal',
   standalone: false,
@@ -11,32 +21,35 @@ const API = 'https://proyectopeque-o.onrender.com';
 })
 export class Terminal implements OnInit, OnDestroy {
 
-  lines: string[] = [];
-  private timer: any = null;
+  users: DisplayUser[] = [];
+  statusLines: string[] = [];
+  private pollTimer: any = null;
+  private tickTimer: any = null;
   private ready = false;
 
   constructor(private http: HttpClient, private cd: ChangeDetectorRef) {}
 
   ngOnInit() {
-    this.log('▶ Terminal iniciada. Verificando servidor...');
+    this.status('▶ Terminal iniciada. Verificando servidor...');
     this.wakeBackend();
   }
 
   ngOnDestroy() {
-    if (this.timer) clearInterval(this.timer);
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    if (this.tickTimer) clearInterval(this.tickTimer);
   }
 
-  // Espera a que el backend responda (free-tier puede tardar ~30s)
   private wakeBackend() {
     this.http.get(`${API}/`).subscribe({
       next: () => {
-        this.log('▶ Servidor activo. Escuchando usuarios...');
+        this.status('▶ Servidor activo. Escuchando usuarios...');
         this.ready = true;
         this.poll();
-        this.timer = setInterval(() => this.poll(), 3000);
+        this.pollTimer = setInterval(() => this.poll(), 3000);
+        this.tickTimer = setInterval(() => this.tick(), 1000);
       },
       error: (e) => {
-        this.log(`▶ Servidor no responde (${e.status || 'timeout'}). Reintentando en 8s...`);
+        this.status(`▶ Servidor no responde (${e.status || 'timeout'}). Reintentando en 8s...`);
         setTimeout(() => this.wakeBackend(), 8000);
       }
     });
@@ -44,39 +57,64 @@ export class Terminal implements OnInit, OnDestroy {
 
   private poll() {
     this.http.get<any[]>(`${API}/api/activity/realtime-users`).subscribe({
-      next: (users) => {
-        const t = this.ts();
-        if (!users || users.length === 0) {
-          this.log(`[${t}] Sin usuarios activos`);
-        } else {
-          this.log(`[${t}] ● ${users.length} usuario(s):`);
-          for (const u of users) {
-            const loc  = u.city && u.city !== '?' ? `${u.city}, ${u.country}` : u.ip;
-            const time = this.fmt(u.timeOnSite);
-            this.log(`  ${u.email || '?'}  |  ${u.ip}  |  ${loc}  |  ${u.page}  |  ${time}`);
+      next: (data) => {
+        const now = Date.now();
+        const incoming = (data || []).map(u => ({
+          email: u.email || '?',
+          ip: u.ip || '?',
+          loc: u.city && u.city !== '?' ? `${u.city}, ${u.country}` : (u.ip || '?'),
+          page: u.page || '/',
+          // server sends timeOnSite = lastActive - firstVisit (ms)
+          firstVisit: now - (u.timeOnSite || 0),
+          lastActive: now,
+          elapsed: this.fmt(u.timeOnSite || 0),
+        }));
+
+        // Merge: update existing, add new, remove gone
+        const keys = new Set(incoming.map(u => u.email + u.ip));
+        // Remove users no longer active
+        this.users = this.users.filter(u => keys.has(u.email + u.ip));
+        // Update / add
+        for (const u of incoming) {
+          const idx = this.users.findIndex(x => x.email === u.email && x.ip === u.ip);
+          if (idx >= 0) {
+            this.users[idx].page = u.page;
+            this.users[idx].lastActive = u.lastActive;
+            this.users[idx].firstVisit = u.firstVisit;
+          } else {
+            this.users.push(u);
           }
         }
+
+        if (incoming.length === 0) {
+          this.status(`[${this.ts()}] Sin usuarios activos`);
+        }
+        this.cd.detectChanges();
       },
       error: (e) => {
-        this.log(`[${this.ts()}] Error ${e.status}: ${e.statusText || e.message}`);
+        this.status(`[${this.ts()}] Error ${e.status}: ${e.statusText || e.message}`);
         if (e.status === 401 || e.status === 403) {
-          this.log('  → Cierra sesión y vuelve a entrar como admin.');
+          this.status('  → Cierra sesión y vuelve a entrar como admin.');
           this.ready = false;
-          if (this.timer) { clearInterval(this.timer); this.timer = null; }
+          if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
+          if (this.tickTimer) { clearInterval(this.tickTimer); this.tickTimer = null; }
         }
+        this.cd.detectChanges();
       }
     });
   }
 
-  private log(text: string) {
-    this.lines = [...this.lines, text];
-    if (this.lines.length > 300) this.lines = this.lines.slice(-300);
+  private tick() {
+    const now = Date.now();
+    for (const u of this.users) {
+      u.elapsed = this.fmt(now - u.firstVisit);
+    }
     this.cd.detectChanges();
-    // scroll al fondo
-    setTimeout(() => {
-      const el = document.querySelector('.term-log');
-      if (el) el.scrollTop = el.scrollHeight;
-    }, 20);
+  }
+
+  private status(text: string) {
+    this.statusLines = [...this.statusLines.slice(-9), text];
+    this.cd.detectChanges();
   }
 
   private ts(): string {
@@ -91,7 +129,8 @@ export class Terminal implements OnInit, OnDestroy {
   }
 
   clear() {
-    this.lines = [];
-    this.log('▶ Terminal limpiada.');
+    this.statusLines = [];
+    this.users = [];
+    this.status('▶ Terminal limpiada.');
   }
 }
