@@ -16,6 +16,7 @@ export interface EfectosPista {
   reverb: number;
   graves: number;
   agudos: number;
+  tono?: number;
 }
 
 export interface Pista {

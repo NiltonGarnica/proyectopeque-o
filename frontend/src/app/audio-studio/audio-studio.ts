@@ -45,6 +45,17 @@ export class AudioStudio implements OnInit, OnDestroy {
   liveChains = new Map<number, LiveChain>();
   velocidad = 1;
 
+  // Karaoke
+  karaokeActivo = false;
+  karaokeError = '';
+  karaokeEfectos: EfectosPista & { tono: number } = {
+    volumen: 1, eco: 0, reverb: 0, graves: 0, agudos: 0, tono: 1
+  };
+  private karaokeCtx: AudioContext | null = null;
+  private karaokeStream: MediaStream | null = null;
+  private karaokeChain: (LiveChain & { input: GainNode }) | null = null;
+  private karaokeSource: MediaStreamAudioSourceNode | null = null;
+
   private liveSources: AudioBufferSourceNode[] = [];
   private colorIdx = 0;
   private segCounter = 0;
@@ -57,7 +68,7 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   ngOnInit() { this.cargarMezclas(); }
 
-  ngOnDestroy() { this.detenerTodas(); }
+  ngOnDestroy() { this.detenerTodas(); this.detenerKaraoke(); }
 
   private nextColor(): string { return COLORS[this.colorIdx++ % COLORS.length]; }
   private nextSegId(): number { return ++this.segCounter; }
@@ -157,6 +168,97 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   onSeekTo(time: number) {
     this.playheadTime = time;
+  }
+
+  // ---- KARAOKE ----
+
+  async iniciarKaraoke() {
+    this.karaokeError = '';
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      });
+      this.karaokeStream = stream;
+
+      const ctx = new AudioContext({ latencyHint: 'interactive' });
+      this.karaokeCtx = ctx;
+
+      const source = ctx.createMediaStreamSource(stream);
+      this.karaokeSource = source;
+
+      const chain = this.crearCadenaKaraoke(ctx, this.karaokeEfectos);
+      this.karaokeChain = chain;
+      source.connect(chain.input);
+
+      this.zone.run(() => { this.karaokeActivo = true; });
+    } catch (err: any) {
+      this.zone.run(() => {
+        this.karaokeError = err?.name === 'NotAllowedError'
+          ? 'Permiso de micrófono denegado'
+          : 'No se pudo acceder al micrófono';
+      });
+    }
+  }
+
+  detenerKaraoke() {
+    this.karaokeActivo = false;
+    this.karaokeError = '';
+    this.karaokeSource?.disconnect();
+    this.karaokeSource = null;
+    this.karaokeStream?.getTracks().forEach(t => t.stop());
+    this.karaokeStream = null;
+    this.karaokeCtx?.close();
+    this.karaokeCtx = null;
+    this.karaokeChain = null;
+  }
+
+  updateKaraokeChain() {
+    const chain = this.karaokeChain;
+    const ctx = this.karaokeCtx;
+    if (!chain || !ctx) return;
+    const t = ctx.currentTime;
+    const ef = this.karaokeEfectos;
+    chain.gain.gain.setTargetAtTime(ef.volumen, t, 0.02);
+    chain.bass.gain.setTargetAtTime(ef.graves, t, 0.02);
+    chain.treble.gain.setTargetAtTime(ef.agudos, t, 0.02);
+    chain.ecoWet.gain.setTargetAtTime(ef.eco, t, 0.05);
+    chain.reverbWet.gain.setTargetAtTime(ef.reverb, t, 0.05);
+    // Tono: shift center frequency of both EQ bands to simulate voice character
+    chain.bass.frequency.setTargetAtTime(250 * ef.tono, t, 0.05);
+    chain.treble.frequency.setTargetAtTime(3000 * ef.tono, t, 0.05);
+  }
+
+  private crearCadenaKaraoke(ctx: AudioContext, ef: EfectosPista & { tono: number }):
+    LiveChain & { input: GainNode } {
+
+    const gain = ctx.createGain();
+    gain.gain.value = ef.volumen;
+
+    const bass = ctx.createBiquadFilter();
+    bass.type = 'lowshelf'; bass.frequency.value = 250 * ef.tono; bass.gain.value = ef.graves;
+
+    const treble = ctx.createBiquadFilter();
+    treble.type = 'highshelf'; treble.frequency.value = 3000 * ef.tono; treble.gain.value = ef.agudos;
+
+    gain.connect(bass);
+    bass.connect(treble);
+    treble.connect(ctx.destination);
+
+    // Eco
+    const delay = ctx.createDelay(1.0); delay.delayTime.value = 0.3;
+    const feedback = ctx.createGain(); feedback.gain.value = 0.6;
+    const ecoWet = ctx.createGain(); ecoWet.gain.value = ef.eco;
+    treble.connect(ecoWet); ecoWet.connect(delay);
+    delay.connect(feedback); feedback.connect(delay);
+    delay.connect(ctx.destination);
+
+    // Reverb
+    const conv = ctx.createConvolver();
+    conv.buffer = this.crearImpulso(ctx, 2.5, 2);
+    const reverbWet = ctx.createGain(); reverbWet.gain.value = ef.reverb;
+    treble.connect(conv); conv.connect(reverbWet); reverbWet.connect(ctx.destination);
+
+    return { input: gain, gain, bass, treble, ecoWet, reverbWet };
   }
 
   // ---- LIVE EFFECTS ----
