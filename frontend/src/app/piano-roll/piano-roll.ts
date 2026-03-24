@@ -2,6 +2,7 @@ import {
   Component, Input, Output, EventEmitter, OnDestroy, AfterViewInit,
   HostListener, NgZone, ViewChild, ElementRef
 } from '@angular/core';
+import * as Tone from 'tone';
 
 export interface PianoNote {
   id: number;
@@ -14,16 +15,24 @@ export interface PianoNote {
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const BLACK_OFFSETS = new Set([1, 3, 6, 8, 10]);
 
-function midiToFreq(midi: number): number {
-  return 440 * Math.pow(2, (midi - 69) / 12);
-}
-
 function midiToName(midi: number): string {
-  const octave = Math.floor(midi / 12) - 1;
-  return NOTE_NAMES[midi % 12] + octave;
+  return NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
 }
 
-// Base QWERTY → MIDI offset (C4 = 60 as anchor, octaveShift applied at runtime)
+// Tone.js Salamander Grand Piano samples
+const SALAMANDER_BASE = 'https://tonejs.github.io/audio/salamander/';
+const SALAMANDER_URLS: Record<string, string> = {
+  'A0':'A0.mp3','C1':'C1.mp3','D#1':'Ds1.mp3','F#1':'Fs1.mp3',
+  'A1':'A1.mp3','C2':'C2.mp3','D#2':'Ds2.mp3','F#2':'Fs2.mp3',
+  'A2':'A2.mp3','C3':'C3.mp3','D#3':'Ds3.mp3','F#3':'Fs3.mp3',
+  'A3':'A3.mp3','C4':'C4.mp3','D#4':'Ds4.mp3','F#4':'Fs4.mp3',
+  'A4':'A4.mp3','C5':'C5.mp3','D#5':'Ds5.mp3','F#5':'Fs5.mp3',
+  'A5':'A5.mp3','C6':'C6.mp3','D#6':'Ds6.mp3','F#6':'Fs6.mp3',
+  'A6':'A6.mp3','C7':'C7.mp3','D#7':'Ds7.mp3','F#7':'Fs7.mp3',
+  'A7':'A7.mp3','C8':'C8.mp3',
+};
+
+// Base QWERTY → MIDI (octaveShift applied at runtime)
 const BASE_KEY_MAP: Record<string, number> = {
   'z':48,'s':49,'x':50,'d':51,'c':52,'v':53,'g':54,'b':55,'h':56,'n':57,'j':58,'m':59,
   'q':60,'2':61,'w':62,'3':63,'e':64,'r':65,'5':66,'t':67,'6':68,'y':69,'7':70,'u':71,
@@ -31,21 +40,6 @@ const BASE_KEY_MAP: Record<string, number> = {
 };
 
 const NOTE_COLORS = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981','#06b6d4','#f97316','#14b8a6'];
-
-interface ActiveNote {
-  oscs: OscillatorNode[];
-  gains: GainNode[];
-  lfo: OscillatorNode;
-  lfoGain: GainNode;
-  masterGain: GainNode;
-  panner: StereoPannerNode;
-  startCtxTime: number;
-  noteObj: PianoNote;
-}
-
-interface ReverbBus {
-  input: GainNode;
-}
 
 @Component({
   selector: 'app-piano-roll',
@@ -62,46 +56,51 @@ export class PianoRoll implements AfterViewInit, OnDestroy {
   readonly pxPerSecond = 80;
   readonly ROW_H = 20;
   readonly LABEL_W = 96;
-  readonly MIDI_MIN = 21;  // A0 — full 88-key piano
-  readonly MIDI_MAX = 108; // C8
+  readonly MIDI_MIN = 21;
+  readonly MIDI_MAX = 108;
 
   notes: PianoNote[] = [];
   isRecording = false;
   isExporting = false;
+  samplerLoading = true;
   cursorTime: number | null = null;
-
-  // Octave shift: -3 … +3 (default 0 → keyboard plays C3–C5)
   octaveShift = 0;
   readonly OCT_MIN = -3;
   readonly OCT_MAX = 3;
 
   private noteId = 0;
-  private audioCtx: AudioContext | null = null;
-  private activeNotes = new Map<number, ActiveNote>();
-  private recordingCtxStart = 0;
+  private sampler: Tone.Sampler | null = null;
+  private activeKeys = new Map<number, { noteName: string; startTone: number; noteObj: PianoNote }>();
+  private recordingToneStart = 0;
   private recordingTimelineStart = 0;
-  private noiseBuffer: AudioBuffer | null = null;
-  private reverbBus: ReverbBus | null = null;
-  private compressor: DynamicsCompressorNode | null = null;
 
   constructor(private zone: NgZone) {}
 
   ngAfterViewInit() {
-    // Scroll to middle C (C4 = MIDI 60) on load
+    this.initSampler();
     setTimeout(() => {
       const el = this.scrollEl?.nativeElement;
       if (!el) return;
-      const c4Row = this.MIDI_MAX - 60; // rows from top
-      const target = c4Row * this.ROW_H - el.clientHeight / 2 + this.ROW_H * 2;
-      el.scrollTop = Math.max(0, target);
-    }, 50);
+      const c4Row = this.MIDI_MAX - 60;
+      el.scrollTop = Math.max(0, c4Row * this.ROW_H - el.clientHeight / 2);
+    }, 60);
   }
 
-  // ---- MIDI range (top = high, bottom = low) ----
+  private async initSampler() {
+    this.sampler = new Tone.Sampler({
+      urls: SALAMANDER_URLS,
+      release: 1.2,
+      baseUrl: SALAMANDER_BASE,
+    }).toDestination();
+    await Tone.loaded();
+    this.zone.run(() => { this.samplerLoading = false; });
+  }
+
+  // ---- RANGE ----
   get midiRange(): number[] {
-    const range: number[] = [];
-    for (let m = this.MIDI_MAX; m >= this.MIDI_MIN; m--) range.push(m);
-    return range;
+    const r: number[] = [];
+    for (let m = this.MIDI_MAX; m >= this.MIDI_MIN; m--) r.push(m);
+    return r;
   }
 
   get timelineWidth(): number {
@@ -109,11 +108,8 @@ export class PianoRoll implements AfterViewInit, OnDestroy {
     return (maxEnd + 3) * this.pxPerSecond;
   }
 
-  // Current keyboard octave range label
   get keyRangeLabel(): string {
-    const lo = midiToName(48 + this.octaveShift * 12);
-    const hi = midiToName(72 + this.octaveShift * 12);
-    return `${lo} – ${hi}`;
+    return `${midiToName(48 + this.octaveShift * 12)} – ${midiToName(72 + this.octaveShift * 12)}`;
   }
 
   shiftOctave(delta: number) {
@@ -129,23 +125,19 @@ export class PianoRoll implements AfterViewInit, OnDestroy {
 
   isBlack(midi: number): boolean { return BLACK_OFFSETS.has(midi % 12); }
   isC(midi: number): boolean { return midi % 12 === 0; }
-  showLabel(midi: number): boolean { return midi % 12 === 0 || midi === 21; } // C notes + A0
+  showLabel(midi: number): boolean { return midi % 12 === 0 || midi === 21; }
   noteName(midi: number): string { return midiToName(midi); }
   noteColor(midi: number): string { return NOTE_COLORS[Math.floor(midi / 12) % NOTE_COLORS.length]; }
-  isActive(midi: number): boolean { return this.activeNotes.has(midi); }
+  isActive(midi: number): boolean { return this.activeKeys.has(midi); }
 
   notesForMidi(midi: number): PianoNote[] {
     return this.notes.filter(n => n.midi === midi && n.duration > 0);
   }
+  noteWidth(note: PianoNote): number { return Math.max(6, note.duration * this.pxPerSecond); }
 
-  noteWidth(note: PianoNote): number {
-    return Math.max(6, note.duration * this.pxPerSecond);
-  }
-
-  // ---- TIMELINE MOUSE NAVIGATION ----
+  // ---- MOUSE NAVIGATION ----
   onLaneClick(event: MouseEvent, el: HTMLElement) {
-    const rect = el.getBoundingClientRect();
-    const x = event.clientX - rect.left + el.scrollLeft - this.LABEL_W;
+    const x = event.clientX - el.getBoundingClientRect().left + el.scrollLeft - this.LABEL_W;
     if (x < 0) return;
     const t = x / this.pxPerSecond;
     this.playheadTime = t;
@@ -153,8 +145,7 @@ export class PianoRoll implements AfterViewInit, OnDestroy {
   }
 
   onLaneMouseMove(event: MouseEvent, el: HTMLElement) {
-    const rect = el.getBoundingClientRect();
-    const x = event.clientX - rect.left + el.scrollLeft - this.LABEL_W;
+    const x = event.clientX - el.getBoundingClientRect().left + el.scrollLeft - this.LABEL_W;
     this.cursorTime = x >= 0 ? x / this.pxPerSecond : null;
   }
 
@@ -167,7 +158,7 @@ export class PianoRoll implements AfterViewInit, OnDestroy {
     const tag = (e.target as HTMLElement).tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     const midi = this.keyToMidi(e.key.toLowerCase());
-    if (midi !== undefined && !this.activeNotes.has(midi)) this.playNote(midi);
+    if (midi !== undefined && !this.activeKeys.has(midi)) this.playNote(midi);
   }
 
   @HostListener('document:keyup', ['$event'])
@@ -176,110 +167,19 @@ export class PianoRoll implements AfterViewInit, OnDestroy {
     if (midi !== undefined) this.stopNote(midi);
   }
 
-  // ---- NOTE PLAY (rich multi-harmonic piano) ----
+  // ---- NOTE PLAY / STOP ----
   playNote(midi: number) {
-    if (this.activeNotes.has(midi)) return;
-    const ctx = this.getCtx();
-    const freq = midiToFreq(midi);
-    const now = ctx.currentTime;
-
-    // Pitch factor: 0 = A0 (lowest), 1 = C8 (highest)
-    const pf = (midi - 21) / 87;
-
-    // Pitch-dependent envelope
-    const baseDecay  = 2.8 - pf * 2.2;   // 2.8s (low) → 0.6s (high)
-    const sustainLvl = 0.28 - pf * 0.18;  // 0.28 → 0.10
-
-    // Inharmonicity (piano strings stretch partials upward, more in low/high registers)
-    const B = 0.0005 + (1 - Math.sin(Math.PI * pf)) * 0.003;
-
-    // How many harmonics to render (more for low notes)
-    const numH = Math.max(4, Math.round(9 - pf * 4));
-
-    // Stereo position: low notes slightly left, high notes slightly right
-    const panVal = ((midi - 64) / 50) * 0.4;
-
-    // Master gain → compressor → destination
-    const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.001, now);
-    masterGain.gain.linearRampToValueAtTime(1.0, now + 0.006);
-
-    const panner = ctx.createStereoPanner();
-    panner.pan.value = Math.max(-1, Math.min(1, panVal));
-
-    masterGain.connect(panner);
-    panner.connect(this.getCompressor(ctx));
-
-    // Reverb send
-    const reverbSend = ctx.createGain();
-    reverbSend.gain.value = 0.22 + (1 - pf) * 0.1; // more reverb for low notes
-    masterGain.connect(reverbSend);
-    reverbSend.connect(this.getReverbBus(ctx).input);
-
-    const oscs: OscillatorNode[] = [];
-    const gains: GainNode[] = [];
-
-    // Harmonic amplitudes (decreasing, brighter for higher notes)
-    const brightnessFactor = 0.5 + pf * 0.5;
-
-    for (let n = 1; n <= numH; n++) {
-      // Stretched partial frequency (inharmonic)
-      const partialFreq = freq * n * Math.sqrt(1 + B * n * n);
-      // Amplitude falls off: ~1/n with brightness adjustment
-      const amp = (1 / n) * Math.pow(brightnessFactor, n - 1) * 0.5;
-      const decay = baseDecay / Math.sqrt(n); // higher harmonics decay faster
-      const sus = Math.max(sustainLvl / n, 0.001);
-
-      const osc = ctx.createOscillator();
-      osc.type = n === 1 ? 'triangle' : 'sine';
-      osc.frequency.value = partialFreq;
-
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0, now);
-      g.gain.linearRampToValueAtTime(amp, now + 0.004);
-      g.gain.exponentialRampToValueAtTime(Math.max(sus, 0.0001), now + decay);
-
-      osc.connect(g);
-      g.connect(masterGain);
-      osc.start(now);
-      oscs.push(osc);
-      gains.push(g);
-    }
-
-    // Hammer noise burst
-    const noise = ctx.createBufferSource();
-    noise.buffer = this.getNoiseBuffer(ctx);
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = 'bandpass';
-    noiseFilter.frequency.value = Math.min(freq * 2.5, 9000);
-    noiseFilter.Q.value = 0.7;
-    const noiseGain = ctx.createGain();
-    const noiseAmp = 0.22 - pf * 0.10; // softer hammer for high notes
-    noiseGain.gain.setValueAtTime(noiseAmp, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
-    noise.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(masterGain);
-    noise.start(now);
-    noise.stop(now + 0.05);
-
-    // LFO vibrato (kicks in after 180ms for held notes)
-    const lfo = ctx.createOscillator();
-    lfo.frequency.value = 5.2;
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.setValueAtTime(0, now);
-    lfoGain.gain.setValueAtTime(0, now + 0.18);
-    lfoGain.gain.linearRampToValueAtTime(freq * 0.004, now + 0.5);
-    lfo.connect(lfoGain);
-    oscs.forEach(o => lfoGain.connect(o.frequency));
-    lfo.start(now);
+    if (!this.sampler || this.activeKeys.has(midi)) return;
+    const noteName = midiToName(midi);
+    const now = Tone.now();
+    this.sampler.triggerAttack(noteName, now);
 
     const startTime = this.isRecording
-      ? this.recordingTimelineStart + (now - this.recordingCtxStart)
+      ? this.recordingTimelineStart + (now - this.recordingToneStart)
       : 0;
 
-    const noteObj: PianoNote = { id: ++this.noteId, midi, noteName: midiToName(midi), startTime, duration: 0 };
-    this.activeNotes.set(midi, { oscs, gains, lfo, lfoGain, masterGain, panner, startCtxTime: now, noteObj });
+    const noteObj: PianoNote = { id: ++this.noteId, midi, noteName, startTime, duration: 0 };
+    this.activeKeys.set(midi, { noteName, startTone: now, noteObj });
 
     if (this.isRecording) {
       this.zone.run(() => { this.notes = [...this.notes, noteObj]; });
@@ -287,239 +187,96 @@ export class PianoRoll implements AfterViewInit, OnDestroy {
   }
 
   stopNote(midi: number) {
-    const active = this.activeNotes.get(midi);
-    if (!active) return;
-    const ctx = this.getCtx();
-    const now = ctx.currentTime;
-
-    // Pitch-dependent release
-    const pf = (midi - 21) / 87;
-    const releaseTime = 0.6 - pf * 0.3; // 0.6s low → 0.3s high
-
-    active.masterGain.gain.cancelScheduledValues(now);
-    active.masterGain.gain.setValueAtTime(active.masterGain.gain.value, now);
-    active.masterGain.gain.exponentialRampToValueAtTime(0.0001, now + releaseTime);
-
-    // Fade LFO
-    active.lfoGain.gain.cancelScheduledValues(now);
-    active.lfoGain.gain.linearRampToValueAtTime(0, now + 0.05);
-
-    const stopAt = now + releaseTime + 0.05;
-    active.oscs.forEach(o => o.stop(stopAt));
-    active.lfo.stop(stopAt);
+    const active = this.activeKeys.get(midi);
+    if (!active || !this.sampler) return;
+    this.sampler.triggerRelease(active.noteName, Tone.now());
 
     if (this.isRecording) {
-      const dur = now - active.startCtxTime;
+      const dur = Tone.now() - active.startTone;
       active.noteObj.duration = Math.max(0.05, dur);
       this.zone.run(() => { this.notes = [...this.notes]; });
     }
 
-    this.activeNotes.delete(midi);
+    this.activeKeys.delete(midi);
   }
 
   // ---- RECORDING ----
   startRecording() {
-    const ctx = this.getCtx();
-    this.recordingCtxStart = ctx.currentTime;
+    this.recordingToneStart = Tone.now();
     this.recordingTimelineStart = this.playheadTime;
     this.notes = [];
     this.isRecording = true;
   }
 
   stopRecording() {
-    [...this.activeNotes.keys()].forEach(m => this.stopNote(m));
+    [...this.activeKeys.keys()].forEach(m => this.stopNote(m));
     this.isRecording = false;
   }
 
   clearNotes() {
-    [...this.activeNotes.keys()].forEach(m => this.stopNote(m));
+    [...this.activeKeys.keys()].forEach(m => this.stopNote(m));
     this.notes = [];
   }
 
-  // ---- EXPORT ----
+  // ---- EXPORT (offline render with Tone.js) ----
   async exportToTrack() {
     if (!this.notes.length) return;
     this.isExporting = true;
     try {
       const validNotes = this.notes.filter(n => n.duration > 0);
-      const totalDur = Math.max(...validNotes.map(n => n.startTime + n.duration)) + 1.2;
-      const sampleRate = 44100;
-      const offline = new OfflineAudioContext(2, Math.ceil(totalDur * sampleRate), sampleRate);
+      const totalDur = Math.max(...validNotes.map(n => n.startTime + n.duration)) + 2.0;
 
-      // Shared compressor for offline
-      const comp = offline.createDynamicsCompressor();
-      comp.threshold.value = -18;
-      comp.knee.value = 10;
-      comp.ratio.value = 4;
-      comp.attack.value = 0.003;
-      comp.release.value = 0.15;
-      comp.connect(offline.destination);
-
-      // Noise buffer
-      const noiseLen = Math.ceil(0.06 * sampleRate);
-      const noiseBuf = offline.createBuffer(1, noiseLen, sampleRate);
-      const nd = noiseBuf.getChannelData(0);
-      for (let i = 0; i < noiseLen; i++) nd[i] = Math.random() * 2 - 1;
-
-      for (const note of validNotes) {
-        const freq = midiToFreq(note.midi);
-        const t = note.startTime;
-        const releaseT = t + note.duration;
-        const pf = (note.midi - 21) / 87;
-        const baseDecay = 2.8 - pf * 2.2;
-        const sustainLvl = 0.28 - pf * 0.18;
-        const B = 0.0005 + (1 - Math.sin(Math.PI * pf)) * 0.003;
-        const numH = Math.max(4, Math.round(9 - pf * 4));
-        const brightnessFactor = 0.5 + pf * 0.5;
-        const pf_release = 0.6 - pf * 0.3;
-
-        const masterGain = offline.createGain();
-        masterGain.gain.setValueAtTime(0.001, t);
-        masterGain.gain.linearRampToValueAtTime(1.0, t + 0.006);
-        masterGain.gain.setValueAtTime(1.0, releaseT);
-        masterGain.gain.exponentialRampToValueAtTime(0.0001, releaseT + pf_release);
-
-        const panner = offline.createStereoPanner();
-        panner.pan.value = Math.max(-1, Math.min(1, ((note.midi - 64) / 50) * 0.4));
-        masterGain.connect(panner);
-        panner.connect(comp);
-
-        for (let n = 1; n <= numH; n++) {
-          const partialFreq = freq * n * Math.sqrt(1 + B * n * n);
-          const amp = (1 / n) * Math.pow(brightnessFactor, n - 1) * 0.5;
-          const decay = baseDecay / Math.sqrt(n);
-          const sus = Math.max(sustainLvl / n, 0.0001);
-
-          const osc = offline.createOscillator();
-          osc.type = n === 1 ? 'triangle' : 'sine';
-          osc.frequency.value = partialFreq;
-          const g = offline.createGain();
-          g.gain.setValueAtTime(0, t);
-          g.gain.linearRampToValueAtTime(amp, t + 0.004);
-          g.gain.exponentialRampToValueAtTime(sus, t + decay);
-          osc.connect(g);
-          g.connect(masterGain);
-          osc.start(t);
-          osc.stop(releaseT + pf_release + 0.1);
+      const buffer = await Tone.Offline(async () => {
+        const offSampler = new Tone.Sampler({
+          urls: SALAMANDER_URLS,
+          release: 1.2,
+          baseUrl: SALAMANDER_BASE,
+        }).toDestination();
+        await Tone.loaded();
+        for (const note of validNotes) {
+          offSampler.triggerAttack(note.noteName, note.startTime);
+          offSampler.triggerRelease(note.noteName, note.startTime + note.duration);
         }
+      }, totalDur, 2);
 
-        // Hammer
-        const ns = offline.createBufferSource();
-        ns.buffer = noiseBuf;
-        const nf = offline.createBiquadFilter();
-        nf.type = 'bandpass';
-        nf.frequency.value = Math.min(freq * 2.5, 9000);
-        nf.Q.value = 0.7;
-        const ng = offline.createGain();
-        ng.gain.setValueAtTime(0.22 - pf * 0.10, t);
-        ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
-        ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
-        ns.start(t); ns.stop(t + 0.06);
-      }
-
-      const rendered = await offline.startRendering();
-      const wav = this.bufferToWav(rendered);
+      const wav = this.toneBufferToWav(buffer);
       const url = URL.createObjectURL(wav);
       this.zone.run(() => {
         this.isExporting = false;
         this.addTrack.emit({ url, nombre: 'Piano Roll' });
       });
-    } catch {
+    } catch (err) {
+      console.error('Export error', err);
       this.zone.run(() => { this.isExporting = false; });
     }
   }
 
-  private bufferToWav(buffer: AudioBuffer): Blob {
-    const left = buffer.getChannelData(0);
-    const right = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : left;
+  private toneBufferToWav(toneBuffer: Tone.ToneAudioBuffer): Blob {
+    const ab = toneBuffer.get()!;
+    const left  = ab.getChannelData(0);
+    const right = ab.numberOfChannels > 1 ? ab.getChannelData(1) : left;
     const len = left.length;
-    const ab = new ArrayBuffer(44 + len * 4);
-    const v = new DataView(ab);
-    const sr = buffer.sampleRate;
+    const arrBuf = new ArrayBuffer(44 + len * 4);
+    const v = new DataView(arrBuf);
+    const sr = ab.sampleRate;
     const ws = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
-    ws(0,'RIFF'); v.setUint32(4, 36 + len*4, true);
+    ws(0,'RIFF'); v.setUint32(4, 36 + len * 4, true);
     ws(8,'WAVE'); ws(12,'fmt ');
-    v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,2,true); // stereo
+    v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,2,true);
     v.setUint32(24,sr,true); v.setUint32(28,sr*4,true); v.setUint16(32,4,true);
     v.setUint16(34,16,true); ws(36,'data'); v.setUint32(40,len*4,true);
     let off = 44;
     for (let i = 0; i < len; i++) {
       const l = Math.max(-1, Math.min(1, left[i]));
       const r = Math.max(-1, Math.min(1, right[i]));
-      v.setInt16(off,   l < 0 ? l * 0x8000 : l * 0x7FFF, true); off += 2;
-      v.setInt16(off,   r < 0 ? r * 0x8000 : r * 0x7FFF, true); off += 2;
+      v.setInt16(off, l < 0 ? l * 0x8000 : l * 0x7FFF, true); off += 2;
+      v.setInt16(off, r < 0 ? r * 0x8000 : r * 0x7FFF, true); off += 2;
     }
-    return new Blob([ab], { type: 'audio/wav' });
-  }
-
-  // ---- AUDIO CONTEXT & SHARED NODES ----
-  private getCtx(): AudioContext {
-    if (!this.audioCtx || this.audioCtx.state === 'closed') {
-      this.audioCtx = new AudioContext();
-      this.noiseBuffer = null;
-      this.reverbBus = null;
-      this.compressor = null;
-    }
-    return this.audioCtx;
-  }
-
-  private getCompressor(ctx: AudioContext): AudioNode {
-    if (!this.compressor) {
-      this.compressor = ctx.createDynamicsCompressor();
-      this.compressor.threshold.value = -18;
-      this.compressor.knee.value = 10;
-      this.compressor.ratio.value = 4;
-      this.compressor.attack.value = 0.003;
-      this.compressor.release.value = 0.15;
-      this.compressor.connect(ctx.destination);
-    }
-    return this.compressor;
-  }
-
-  private getReverbBus(ctx: AudioContext): ReverbBus {
-    if (!this.reverbBus) {
-      // Simple Schroeder-style reverb: 4 parallel delays + feedback
-      const input = ctx.createGain();
-      input.gain.value = 1;
-
-      const wet = ctx.createGain();
-      wet.gain.value = 0.28;
-      wet.connect(this.getCompressor(ctx));
-
-      const delayTimes = [0.029, 0.037, 0.043, 0.051];
-      for (const dt of delayTimes) {
-        const delay = ctx.createDelay(0.1);
-        delay.delayTime.value = dt;
-        const fb = ctx.createGain();
-        fb.gain.value = 0.30;
-        const lpf = ctx.createBiquadFilter();
-        lpf.type = 'lowpass';
-        lpf.frequency.value = 3500;
-        input.connect(delay);
-        delay.connect(lpf);
-        lpf.connect(fb);
-        fb.connect(delay);
-        lpf.connect(wet);
-      }
-
-      this.reverbBus = { input };
-    }
-    return this.reverbBus;
-  }
-
-  private getNoiseBuffer(ctx: AudioContext): AudioBuffer {
-    if (!this.noiseBuffer) {
-      const len = Math.ceil(ctx.sampleRate * 0.06);
-      const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-      this.noiseBuffer = buf;
-    }
-    return this.noiseBuffer;
+    return new Blob([arrBuf], { type: 'audio/wav' });
   }
 
   ngOnDestroy() {
-    [...this.activeNotes.keys()].forEach(m => this.stopNote(m));
-    this.audioCtx?.close();
+    [...this.activeKeys.keys()].forEach(m => this.stopNote(m));
+    this.sampler?.dispose();
   }
 }

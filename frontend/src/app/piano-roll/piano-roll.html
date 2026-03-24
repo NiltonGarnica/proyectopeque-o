@@ -4,7 +4,10 @@
   <div class="pr-toolbar">
     <h3>🎹 Piano Roll</h3>
 
-    <div class="pr-actions">
+    <!-- Loading indicator -->
+    <span class="pr-loading" *ngIf="samplerLoading">⏳ Cargando piano...</span>
+
+    <div class="pr-actions" *ngIf="!samplerLoading">
       <button *ngIf="!isRecording" class="pr-btn pr-btn-rec" (click)="startRecording()">⏺ Grabar</button>
       <button *ngIf="isRecording" class="pr-btn pr-btn-stop" (click)="stopRecording()">⏹ Detener</button>
       <button class="pr-btn pr-btn-export" (click)="exportToTrack()"
