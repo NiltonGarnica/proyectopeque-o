@@ -19,10 +19,12 @@ import { AudioStudio } from './audio-studio/audio-studio';
 import { AudioTimeline } from './audio-timeline/audio-timeline';
 import { PianoRoll } from './piano-roll/piano-roll';
 import { Terminal } from './terminal/terminal';
+import { Nav } from './nav/nav';
 
 @NgModule({
   declarations: [
     AppComponent,
+    Nav,
     LoginComponent,
     DashboardComponent,
     Register,

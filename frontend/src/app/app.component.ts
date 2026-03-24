@@ -9,7 +9,7 @@ import { ActivityService } from './services/activity.service';
 })
 export class AppComponent implements OnInit {
 
-  constructor(private auth: AuthService, private activity: ActivityService) {}
+  constructor(public auth: AuthService, private activity: ActivityService) {}
 
   ngOnInit() {
     // Registrar referencia antes de cualquier acción

@@ -1,30 +1,31 @@
-<div class="container dashboard">
-  <div class="header">
+<div class="dash-page">
+  <div class="dash-header">
     <h2>Bienvenido, {{ auth.getNombre() }}</h2>
-    <div class="btn-row">
-      <button routerLink="/proyectos">Proyectos</button>
-      <button routerLink="/pagos">Pagos</button>
-      <button class="btn-studio" routerLink="/studio">🎵 Estudio</button>
-      <button class="btn-admin" routerLink="/admin" *ngIf="auth.getRol() === 'admin'">Admin</button>
-      <button class="btn-logout" (click)="logout()">Cerrar sesión</button>
-    </div>
   </div>
 
-  <h3>Nueva Reserva</h3>
-  <select [(ngModel)]="servicio">
-    <option *ngFor="let s of servicios" [value]="s">{{ s }}</option>
-  </select>
-  <input [(ngModel)]="fecha" type="datetime-local">
-  <input [(ngModel)]="duracionHoras" type="number" placeholder="Duración (horas)" min="1">
-  <input [(ngModel)]="notas" placeholder="Notas (opcional)">
-  <button (click)="crearReserva()">Crear reserva</button>
+  <div class="dash-grid">
+    <!-- Nueva Reserva -->
+    <div class="dash-card">
+      <h3>Nueva Reserva</h3>
+      <select [(ngModel)]="servicio">
+        <option *ngFor="let s of servicios" [value]="s">{{ s }}</option>
+      </select>
+      <input [(ngModel)]="fecha" type="datetime-local">
+      <input [(ngModel)]="duracionHoras" type="number" placeholder="Duración (horas)" min="1">
+      <input [(ngModel)]="notas" placeholder="Notas (opcional)">
+      <button (click)="crearReserva()">Crear reserva</button>
+    </div>
 
-  <h3>Mis Reservas</h3>
-  <ul>
-    <li *ngFor="let r of reservas">
-      <strong>{{ r.servicio }}</strong> — {{ r.fecha | date:'dd/MM/yyyy HH:mm' }}
-      — {{ r.duracionHoras }}h — <span class="estado">{{ r.estado }}</span>
-    </li>
-  </ul>
-  <p *ngIf="reservas.length === 0">No tienes reservas aún.</p>
+    <!-- Mis Reservas -->
+    <div class="dash-card">
+      <h3>Mis Reservas</h3>
+      <ul>
+        <li *ngFor="let r of reservas">
+          <strong>{{ r.servicio }}</strong> — {{ r.fecha | date:'dd/MM/yyyy HH:mm' }}
+          — {{ r.duracionHoras }}h — <span class="estado">{{ r.estado }}</span>
+        </li>
+      </ul>
+      <p *ngIf="reservas.length === 0">No tienes reservas aún.</p>
+    </div>
+  </div>
 </div>

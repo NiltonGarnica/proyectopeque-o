@@ -7,6 +7,7 @@ const API = 'https://proyectopeque-o.onrender.com';
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.css',
   standalone: false
 })
 export class DashboardComponent implements OnInit {

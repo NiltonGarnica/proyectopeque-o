@@ -1,0 +1,38 @@
+.dash-page {
+  width: 100%;
+}
+
+.dash-header {
+  margin-bottom: 24px;
+}
+
+.dash-header h2 {
+  margin: 0;
+  font-size: 1.4em;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.dash-card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 0 12px rgba(0,0,0,0.3);
+}
+
+.dash-card h3 {
+  margin: 0 0 16px;
+  font-size: 1em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 600px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-card { padding: 16px; }
+}

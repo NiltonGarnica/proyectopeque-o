@@ -1,0 +1,40 @@
+<ng-container *ngIf="auth.isLoggedIn()">
+
+  <!-- Hamburger (mobile) -->
+  <button class="hamburger" (click)="toggle()">☰</button>
+
+  <!-- Overlay (mobile) -->
+  <div class="overlay" *ngIf="menuOpen" (click)="close()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" [class.open]="menuOpen">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🎵</span>
+      <span class="logo-text">Powersound</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/dashboard" routerLinkActive="active" (click)="close()">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+      <a routerLink="/proyectos" routerLinkActive="active" (click)="close()">
+        <span class="nav-icon">🎧</span> Proyectos
+      </a>
+      <a routerLink="/pagos" routerLinkActive="active" (click)="close()">
+        <span class="nav-icon">💳</span> Pagos
+      </a>
+      <a routerLink="/studio" routerLinkActive="active" (click)="close()">
+        <span class="nav-icon">🎹</span> Estudio
+      </a>
+      <a routerLink="/admin" routerLinkActive="active" (click)="close()" *ngIf="auth.getRol() === 'admin'">
+        <span class="nav-icon">⚙️</span> Admin
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-name">{{ auth.getNombre() }}</div>
+      <button class="btn-logout" (click)="logout()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+</ng-container>

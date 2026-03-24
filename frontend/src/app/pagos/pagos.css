@@ -1,8 +1,6 @@
 .page {
   width: 100%;
-  max-width: 620px;
-  margin: 40px auto;
-  padding: 0 16px;
+  padding: 0;
   box-sizing: border-box;
 }
 

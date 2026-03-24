@@ -1,37 +1,45 @@
 html, body {
   overflow-x: hidden;
   max-width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
   font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
+  background: #0f172a;
   color: white;
-  margin: 0;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
+/* ── Sidebar layout ── */
+.main-content {
+  min-height: 100vh;
+}
+
+.main-content.with-sidebar {
+  margin-left: 220px;
+  padding: 28px;
+}
+
+/* ── Auth pages (login/register) — keep centered ── */
 .container {
   background: #1e293b;
   padding: 30px;
   border-radius: 12px;
   box-shadow: 0 0 20px rgba(0,0,0,0.5);
   text-align: center;
-  margin-top: 60px;
+  margin: 60px auto;
   width: 100%;
-  max-width: 500px;
+  max-width: 460px;
   box-sizing: border-box;
 }
 
 .dashboard {
-  max-width: 500px;
   width: 100%;
   text-align: left;
 }
@@ -85,28 +93,38 @@ button:hover { background: #16a34a; }
 .btn-studio { background: #0891b2; margin-top: 0; }
 .btn-studio:hover { background: #0e7490; }
 
+.btn-back { background: #334155; margin-top: 0; }
+.btn-back:hover { background: #475569; }
+
 .error { color: #f87171; font-size: 0.9em; }
+.exito { color: #4ade80; font-size: 0.9em; }
 
 ul { padding: 0; list-style: none; }
 
 li {
-  background: #0f172a;
+  background: #1e293b;
   padding: 10px 14px;
   border-radius: 8px;
   margin: 6px 0;
 }
 
 .estado { color: #22c55e; font-weight: bold; }
-.exito { color: #4ade80; font-size: 0.9em; }
 
 .link { margin-top: 16px; font-size: 0.9em; color: #94a3b8; }
 .link a { color: #22c55e; text-decoration: none; }
 .link a:hover { text-decoration: underline; }
 
-/* ===== MOBILE ===== */
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .main-content.with-sidebar {
+    margin-left: 0;
+    padding: 60px 14px 20px;
+  }
+}
+
 @media (max-width: 600px) {
   .container {
-    margin-top: 0;
+    margin: 0 auto;
     border-radius: 0;
     padding: 16px 14px;
     min-height: 100vh;
@@ -114,46 +132,20 @@ li {
     max-width: 100%;
   }
 
-  .dashboard {
-    max-width: 100%;
-  }
+  .header { flex-direction: column; gap: 8px; }
+  .header h2 { font-size: 1.1em; margin: 0; }
 
-  .header {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .header h2 {
-    font-size: 1.1em;
-    margin: 0;
-  }
-
-  .btn-row {
-    width: 100%;
-    gap: 6px;
-  }
-
+  .btn-row { width: 100%; gap: 6px; }
   .btn-row button {
     flex: 1 1 auto;
     font-size: 0.78em;
-    padding: 8px 8px;
+    padding: 8px;
     margin-top: 0;
     min-width: 0;
     text-align: center;
   }
 
-  input, select {
-    font-size: 16px; /* evita zoom en iOS */
-  }
-
-  button {
-    font-size: 0.9em;
-    padding: 9px 12px;
-  }
-
-  li {
-    font-size: 0.88em;
-    padding: 8px 10px;
-    word-break: break-word;
-  }
+  input, select { font-size: 16px; }
+  button { font-size: 0.9em; padding: 9px 12px; }
+  li { font-size: 0.88em; padding: 8px 10px; word-break: break-word; }
 }
