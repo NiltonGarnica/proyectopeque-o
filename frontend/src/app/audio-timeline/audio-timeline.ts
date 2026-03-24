@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, NgZone } from '@angular/core';
+import { Component, Input, Output, EventEmitter, NgZone, DoCheck, HostListener, OnDestroy } from '@angular/core';
 
 export interface Segmento {
   id: number;
@@ -33,7 +33,7 @@ export interface Pista {
   templateUrl: './audio-timeline.html',
   styleUrl: './audio-timeline.css',
 })
-export class AudioTimeline {
+export class AudioTimeline implements DoCheck, OnDestroy {
   @Input() pistas: Pista[] = [];
   @Input() playheadTime = 0;
   @Input() reproduciendo = false;
@@ -45,6 +45,14 @@ export class AudioTimeline {
   readonly ROW_H = 52;
 
   selectedSeg: { pi: number; si: number } | null = null;
+
+  // Context menu
+  contextMenu: { x: number; y: number; pi: number; si: number } | null = null;
+
+  // Waveform cache: url → SVG path string
+  readonly waveformPaths = new Map<string, string>();
+  private readonly seenUrls = new Set<string>();
+  private waveformCtx: AudioContext | null = null;
 
   private segCounter = 0;
   private nextId() { return ++this.segCounter; }
@@ -61,6 +69,104 @@ export class AudioTimeline {
   private boundUp = () => this.zone.run(() => this.onPointerUp());
 
   constructor(private zone: NgZone) {}
+
+  ngDoCheck() {
+    for (const p of this.pistas) {
+      for (const s of p.segmentos) {
+        if (!this.seenUrls.has(s.url)) {
+          this.seenUrls.add(s.url);
+          this.fetchWaveform(s.url);
+        }
+      }
+    }
+  }
+
+  ngOnDestroy() {
+    this.waveformCtx?.close();
+  }
+
+  private async fetchWaveform(url: string) {
+    try {
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) return;
+      const ab = await res.arrayBuffer();
+      if (!this.waveformCtx || this.waveformCtx.state === 'closed') {
+        this.waveformCtx = new AudioContext();
+      }
+      const buffer = await new Promise<AudioBuffer>((resolve, reject) => {
+        this.waveformCtx!.decodeAudioData(ab.slice(0), resolve, reject);
+      });
+      // Downsample to 100 peaks
+      const data = buffer.getChannelData(0);
+      const N = 100;
+      const step = Math.max(1, Math.floor(data.length / N));
+      const peaks: number[] = [];
+      for (let i = 0; i < N; i++) {
+        let max = 0;
+        for (let j = 0; j < step; j++) max = Math.max(max, Math.abs(data[i * step + j] || 0));
+        peaks.push(max);
+      }
+      // SVG path: filled waveform centered at mid
+      const H = 28, mid = H / 2;
+      let d = `M0,${mid}`;
+      for (let i = 0; i < N; i++) d += ` L${i},${mid - peaks[i] * mid * 0.88}`;
+      d += ` L${N},${mid}`;
+      for (let i = N - 1; i >= 0; i--) d += ` L${i},${mid + peaks[i] * mid * 0.88}`;
+      d += ' Z';
+
+      this.zone.run(() => this.waveformPaths.set(url, d));
+    } catch { /* silent - waveform optional */ }
+  }
+
+  getWaveformPath(url: string): string | null {
+    return this.waveformPaths.get(url) || null;
+  }
+
+  // ---- CONTEXT MENU ----
+
+  onContextMenu(e: MouseEvent, pi: number, si: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.contextMenu = { x: e.clientX, y: e.clientY, pi, si };
+    this.selectedSeg = { pi, si };
+  }
+
+  @HostListener('document:click')
+  closeContextMenu() { this.contextMenu = null; }
+
+  ctxCopy() {
+    if (!this.contextMenu) return;
+    const { pi, si } = this.contextMenu;
+    this.selectedSeg = { pi, si };
+    this.copySelected();
+    this.contextMenu = null;
+  }
+
+  ctxDuplicate() {
+    if (!this.contextMenu) return;
+    const { pi, si } = this.contextMenu;
+    const s = this.pistas[pi].segmentos[si];
+    const src = this.pistas[pi];
+    this.pistas.push({
+      nombre: `Pista ${this.pistas.length + 1}`,
+      activa: src.activa,
+      color: src.color,
+      efectos: { ...src.efectos },
+      segmentos: [{ ...s, id: this.nextId() }],
+    });
+    this.contextMenu = null;
+  }
+
+  ctxDelete() {
+    if (!this.contextMenu) return;
+    const { pi, si } = this.contextMenu;
+    this.pistas[pi].segmentos.splice(si, 1);
+    if (this.pistas[pi].segmentos.length === 0) this.pistas.splice(pi, 1);
+    this.selectedSeg = null;
+    this.contextMenu = null;
+  }
+
+  // ---- TIMELINE ----
 
   get totalDuration(): number {
     let max = 10;
@@ -93,12 +199,6 @@ export class AudioTimeline {
 
   clearSelection() { this.selectedSeg = null; }
 
-  selectSeg(pi: number, si: number, e: Event) {
-    e.stopPropagation();
-    const same = this.selectedSeg?.pi === pi && this.selectedSeg?.si === si;
-    this.selectedSeg = same ? null : { pi, si };
-  }
-
   copySelected() {
     if (!this.selectedSeg) return;
     const { pi, si } = this.selectedSeg;
@@ -128,6 +228,8 @@ export class AudioTimeline {
       }
     }
   }
+
+  // ---- DRAG ----
 
   startMove(event: PointerEvent, pi: number, si: number) {
     event.stopPropagation();

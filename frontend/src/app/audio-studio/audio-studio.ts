@@ -14,6 +14,12 @@ interface MezclaGuardada {
   fecha: string;
 }
 
+interface LiveChain {
+  gain: GainNode;
+  bass: BiquadFilterNode;
+  treble: BiquadFilterNode;
+}
+
 @Component({
   selector: 'app-audio-studio',
   standalone: false,
@@ -32,6 +38,9 @@ export class AudioStudio implements OnInit, OnDestroy {
   playheadTime = 0;
 
   mezclas: MezclaGuardada[] = [];
+
+  // Live audio nodes per pista index (only active during playback)
+  liveChains = new Map<number, LiveChain>();
 
   private colorIdx = 0;
   private segCounter = 0;
@@ -138,14 +147,35 @@ export class AudioStudio implements OnInit, OnDestroy {
     });
   }
 
-  // ---- TIMELINE EVENTS ----
-
   onDeleteFromTimeline(index: number) {
     this.pistas.splice(index, 1);
   }
 
   onSeekTo(time: number) {
     this.playheadTime = time;
+  }
+
+  // ---- LIVE EFFECTS ----
+
+  updateLiveVolumen(pistaIdx: number, ef: EfectosPista) {
+    const chain = this.liveChains.get(pistaIdx);
+    if (chain && this.audioContext) {
+      chain.gain.gain.setTargetAtTime(ef.volumen, this.audioContext.currentTime, 0.02);
+    }
+  }
+
+  updateLiveGraves(pistaIdx: number, ef: EfectosPista) {
+    const chain = this.liveChains.get(pistaIdx);
+    if (chain && this.audioContext) {
+      chain.bass.gain.setTargetAtTime(ef.graves, this.audioContext.currentTime, 0.02);
+    }
+  }
+
+  updateLiveAgudos(pistaIdx: number, ef: EfectosPista) {
+    const chain = this.liveChains.get(pistaIdx);
+    if (chain && this.audioContext) {
+      chain.treble.gain.setTargetAtTime(ef.agudos, this.audioContext.currentTime, 0.02);
+    }
   }
 
   // ---- PLAYBACK ----
@@ -157,16 +187,19 @@ export class AudioStudio implements OnInit, OnDestroy {
 
     this.mensajeExport = 'Cargando pistas...';
     this.reproduciendo = true;
+    this.liveChains.clear();
 
     try {
       const ctx = new AudioContext();
       this.audioContext = ctx;
 
-      // Flatten all segments from all active pistas
-      const allSegs: { seg: Segmento; efectos: EfectosPista }[] = [];
+      // Flatten all segments with their parent pista info
+      type SegInfo = { seg: Segmento; pistaOrigIdx: number };
+      const allSegs: SegInfo[] = [];
       for (const pista of activas) {
+        const origIdx = this.pistas.indexOf(pista);
         for (const seg of pista.segmentos) {
-          allSegs.push({ seg, efectos: pista.efectos });
+          allSegs.push({ seg, pistaOrigIdx: origIdx });
         }
       }
 
@@ -180,6 +213,15 @@ export class AudioStudio implements OnInit, OnDestroy {
 
       this.mensajeExport = '';
 
+      // Create ONE effect chain per active pista and store for live updates
+      const chainMap = new Map<number, LiveChain & { input: GainNode }>();
+      for (const pista of activas) {
+        const origIdx = this.pistas.indexOf(pista);
+        const chain = this.crearCadenaEfectos(ctx, pista.efectos);
+        chainMap.set(origIdx, chain);
+        this.liveChains.set(origIdx, chain);
+      }
+
       const startFrom = this.playheadTime;
       const ctxStart = ctx.currentTime + 0.1;
       this.playbackStartCtxTime = ctxStart;
@@ -187,13 +229,16 @@ export class AudioStudio implements OnInit, OnDestroy {
 
       const promises: Promise<void>[] = [];
 
-      allSegs.forEach(({ seg, efectos }, i) => {
+      allSegs.forEach(({ seg, pistaOrigIdx }, i) => {
+        const chain = chainMap.get(pistaOrigIdx);
+        if (!chain) return;
+
         const segEnd = seg.startTime + seg.duration - seg.trimStart - seg.trimEnd;
         if (segEnd <= startFrom) return;
 
         const src = ctx.createBufferSource();
         src.buffer = buffers[i];
-        this.aplicarEfectos(ctx, src, efectos);
+        src.connect(chain.input);
 
         let when: number, offset: number, duration: number;
 
@@ -224,6 +269,7 @@ export class AudioStudio implements OnInit, OnDestroy {
       this.zone.run(() => {
         this.reproduciendo = false;
         this.mensajeExport = '';
+        this.liveChains.clear();
         if (this.playheadInterval) { clearInterval(this.playheadInterval); this.playheadInterval = null; }
         ctx.close();
         this.audioContext = null;
@@ -233,6 +279,7 @@ export class AudioStudio implements OnInit, OnDestroy {
       this.zone.run(() => {
         this.reproduciendo = false;
         this.mensajeExport = 'Error al cargar pistas';
+        this.liveChains.clear();
         console.error(err);
         if (this.playheadInterval) { clearInterval(this.playheadInterval); this.playheadInterval = null; }
         this.audioContext?.close();
@@ -244,6 +291,7 @@ export class AudioStudio implements OnInit, OnDestroy {
   detenerTodas() {
     this.reproduciendo = false;
     this.mensajeExport = '';
+    this.liveChains.clear();
     if (this.playheadInterval) { clearInterval(this.playheadInterval); this.playheadInterval = null; }
     if (this.audioContext) { this.audioContext.close(); this.audioContext = null; }
   }
@@ -288,7 +336,7 @@ export class AudioStudio implements OnInit, OnDestroy {
       allSegs.forEach(({ seg, efectos }, i) => {
         const src = offline.createBufferSource();
         src.buffer = buffers[i];
-        this.aplicarEfectos(offline, src, efectos);
+        this.aplicarEfectosOffline(offline, src, efectos);
         const dur = seg.duration - seg.trimStart - seg.trimEnd;
         src.start(seg.startTime, seg.trimStart, dur);
       });
@@ -368,9 +416,44 @@ export class AudioStudio implements OnInit, OnDestroy {
     });
   }
 
-  // ---- EFECTOS WEB AUDIO ----
+  // ---- AUDIO EFFECTS ----
 
-  private aplicarEfectos(ctx: BaseAudioContext, input: AudioNode, ef: EfectosPista): void {
+  // For live playback: creates a shared chain per pista and returns node refs
+  private crearCadenaEfectos(ctx: AudioContext, ef: EfectosPista): LiveChain & { input: GainNode } {
+    const gain = ctx.createGain();
+    gain.gain.value = ef.volumen;
+
+    const bass = ctx.createBiquadFilter();
+    bass.type = 'lowshelf'; bass.frequency.value = 250; bass.gain.value = ef.graves;
+
+    const treble = ctx.createBiquadFilter();
+    treble.type = 'highshelf'; treble.frequency.value = 3000; treble.gain.value = ef.agudos;
+
+    gain.connect(bass);
+    bass.connect(treble);
+    treble.connect(ctx.destination);
+
+    if (ef.eco > 0) {
+      const delay = ctx.createDelay(1.0); delay.delayTime.value = 0.3;
+      const feedback = ctx.createGain(); feedback.gain.value = ef.eco * 0.6;
+      const wet = ctx.createGain(); wet.gain.value = ef.eco;
+      treble.connect(wet); wet.connect(delay);
+      delay.connect(feedback); feedback.connect(delay);
+      delay.connect(ctx.destination);
+    }
+
+    if (ef.reverb > 0) {
+      const conv = ctx.createConvolver();
+      conv.buffer = this.crearImpulso(ctx, 2.5, 2);
+      const wet = ctx.createGain(); wet.gain.value = ef.reverb;
+      treble.connect(conv); conv.connect(wet); wet.connect(ctx.destination);
+    }
+
+    return { input: gain, gain, bass, treble };
+  }
+
+  // For offline export (no node refs needed)
+  private aplicarEfectosOffline(ctx: BaseAudioContext, input: AudioNode, ef: EfectosPista): void {
     const gain = ctx.createGain();
     gain.gain.value = ef.volumen;
     input.connect(gain);

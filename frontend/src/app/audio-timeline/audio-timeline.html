@@ -6,7 +6,7 @@
       <button class="tl-btn" (click)="zoomOut()" title="Alejar">🔍−</button>
       <button class="tl-btn" (click)="zoomIn()" title="Acercar">🔍+</button>
       <button class="tl-btn" (click)="copySelected()" [disabled]="!selectedSeg" title="Copiar segmento seleccionado">📋 Copiar</button>
-      <button class="tl-btn tl-btn-cut" (click)="splitAtPlayhead()" title="Cortar en la posición actual">✂ Cortar</button>
+      <button class="tl-btn tl-btn-cut" (click)="splitAtPlayhead()" title="Cortar en posición actual">✂ Cortar</button>
     </div>
   </div>
 
@@ -15,7 +15,8 @@
     <!-- Regla de tiempo -->
     <div class="tl-row tl-ruler-row">
       <div class="tl-label-col tl-label-ruler"></div>
-      <div class="tl-content" [style.width.px]="timelineWidth" (click)="onRulerClick($event)" (pointerdown)="$event.stopPropagation()">
+      <div class="tl-content" [style.width.px]="timelineWidth"
+           (click)="onRulerClick($event)" (pointerdown)="$event.stopPropagation()">
         <div *ngFor="let t of rulerTicks" class="tl-tick" [style.left.px]="t * pxPerSecond">
           <span>{{ t }}s</span>
         </div>
@@ -32,22 +33,26 @@
       </div>
       <div class="tl-content" [style.width.px]="timelineWidth">
 
-        <!-- Segmentos de la pista -->
         <div *ngFor="let s of p.segmentos; let si = index"
              class="tl-block"
              [class.tl-muted]="!p.activa"
              [class.tl-selected]="selectedSeg?.pi === pi && selectedSeg?.si === si"
              [style.left.px]="s.startTime * pxPerSecond"
              [style.width.px]="segWidth(s)"
-             [style.background]="p.color">
+             [style.background]="p.color"
+             (contextmenu)="onContextMenu($event, pi, si)">
           <!-- Handle izquierdo (trim) -->
           <div class="tl-handle" (pointerdown)="startTrim($event, pi, si, 'left')">
             <span>◀</span>
           </div>
           <!-- Cuerpo (mover + seleccionar con tap) -->
-          <div class="tl-block-body"
-               (pointerdown)="startMove($event, pi, si)"
+          <div class="tl-block-body" (pointerdown)="startMove($event, pi, si)"
                [class.tl-selected-body]="selectedSeg?.pi === pi && selectedSeg?.si === si">
+            <!-- Waveform -->
+            <svg *ngIf="getWaveformPath(s.url)" class="tl-waveform"
+                 viewBox="0 0 100 28" preserveAspectRatio="none">
+              <path [attr.d]="getWaveformPath(s.url)" fill="rgba(255,255,255,0.28)" />
+            </svg>
             <span class="tl-block-label">{{ s.nombre }}</span>
           </div>
           <!-- Handle derecho (trim) -->
@@ -59,7 +64,7 @@
       </div>
     </div>
 
-    <!-- Indicador de nueva pista al arrastrar -->
+    <!-- Indicador de nueva pista -->
     <div class="tl-row tl-new-row" *ngIf="isNewRowTarget()">
       <div class="tl-label-col tl-label-new">+ nueva pista</div>
       <div class="tl-content" [style.width.px]="timelineWidth"></div>
@@ -73,7 +78,18 @@
   </div>
 
   <p class="tl-hint">
-    Arrastra bloques para moverlos · Arrastra verticalmente para cambiar de pista · Arrastra bordes para recortar · Clic para seleccionar · 📋 para copiar · ✂ para cortar
+    Tap para seleccionar · Arrastra para mover · Arrastra verticalmente para cambiar de pista · Clic derecho para más opciones · ✂ para cortar · 📋 para copiar
   </p>
 
+</div>
+
+<!-- Menú contextual (fuera del scroll para no ser recortado) -->
+<div class="tl-ctx-menu" *ngIf="contextMenu"
+     [style.left.px]="contextMenu.x"
+     [style.top.px]="contextMenu.y"
+     (click)="$event.stopPropagation()">
+  <button class="tl-ctx-btn" (click)="ctxCopy()">📋 Copiar al lado</button>
+  <button class="tl-ctx-btn" (click)="ctxDuplicate()">🔁 Duplicar en nueva pista</button>
+  <div class="tl-ctx-sep"></div>
+  <button class="tl-ctx-btn tl-ctx-danger" (click)="ctxDelete()">🗑 Eliminar segmento</button>
 </div>
