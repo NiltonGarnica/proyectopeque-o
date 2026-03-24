@@ -159,6 +159,17 @@ export class Terminal implements OnInit, OnDestroy {
     return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
   }
 
+  openPopup() {
+    const w = 900, h = 600;
+    const left = Math.round((screen.width - w) / 2);
+    const top  = Math.round((screen.height - h) / 2);
+    window.open(
+      '/admin/terminal',
+      'terminalWindow',
+      `width=${w},height=${h},left=${left},top=${top},resizable=yes`
+    );
+  }
+
   clear() {
     this.lines = [];
     this.log('▶ Terminal limpiada.');
