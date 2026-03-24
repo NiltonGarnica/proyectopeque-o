@@ -187,7 +187,8 @@
 
 .pr-key-black {
   background: linear-gradient(to right, #1e293b, #0f172a);
-  border-right: 2px solid #0f172a;
+  /* thick right border in the row-black color makes the key appear ~62% as wide */
+  border-right: 36px solid #080f1e;
 }
 
 .pr-key-active {
