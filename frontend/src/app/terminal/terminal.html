@@ -8,29 +8,20 @@
       <span class="term-name">powersound — admin terminal</span>
     </div>
     <div class="term-actions">
-      <button class="term-btn" (click)="clear()">Limpiar</button>
       <button class="term-btn" (click)="openPopup()">⧉ Popup</button>
       <button class="term-btn" routerLink="/admin">← Volver</button>
     </div>
   </div>
 
-  <!-- Tabla en vivo: un registro por usuario, tiempo actualiza cada segundo -->
+  <!-- Status line -->
+  <div class="term-status">▶ {{ status }}</div>
+
+  <!-- Live user table -->
   <div class="term-live">
-    <div class="term-line dim">
-      {{ '         ' + pad('EMAIL', 25) + ' | ' + pad('IP', 15) + ' | ' + pad('CIUDAD', 18) + ' | ' + pad('PÁGINA', 20) + ' | ' + 'TIEMPO' }}
-    </div>
-    <div class="term-line dim">         {{ '─'.repeat(100) }}</div>
-    <div *ngIf="activeUsers.length === 0" class="term-line dim">         Sin usuarios activos</div>
-    <div *ngFor="let u of activeUsers" class="term-line">
-      {{ '  ●      ' + formatUser(u) }}
-    </div>
-  </div>
-
-  <div class="term-divider"></div>
-
-  <!-- Log de eventos: solo se agrega cuando entra o sale un usuario -->
-  <div class="term-log">
-    <div *ngFor="let line of lines" class="term-line">{{ line }}</div>
+    <div class="term-line dim">{{ pad('EMAIL', 25) + ' | ' + pad('IP', 15) + ' | ' + pad('CIUDAD', 18) + ' | ' + pad('PÁGINA', 20) + ' | TIEMPO' }}</div>
+    <div class="term-line dim">{{ '─'.repeat(100) }}</div>
+    <div *ngIf="activeUsers.length === 0" class="term-line dim">Sin usuarios activos</div>
+    <div *ngFor="let u of activeUsers" class="term-line">{{ formatUser(u) }}</div>
   </div>
 
 </div>

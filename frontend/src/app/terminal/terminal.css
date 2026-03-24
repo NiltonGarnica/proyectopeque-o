@@ -14,7 +14,6 @@
   box-sizing: border-box;
 }
 
-/* ── Header ─────────────────────────────────── */
 .term-header {
   display: flex;
   align-items: center;
@@ -50,39 +49,29 @@
 }
 .term-btn:hover { background: #00ff00; color: #000; }
 
-/* ── Live user table ─────────────────────────── */
-.term-live {
-  padding: 14px 18px 8px;
+.term-status {
+  padding: 6px 18px;
+  font-size: 0.78em;
+  color: #2a7a2a;
+  border-bottom: 1px solid #0d1f0d;
   flex-shrink: 0;
-  overflow-x: auto;
 }
 
-/* ── Divider ─────────────────────────────────── */
-.term-divider {
-  border-top: 1px solid #1a3d1a;
-  margin: 0 18px;
-}
-
-/* ── Event log ───────────────────────────────── */
-.term-log {
+.term-live {
   flex: 1;
-  overflow-y: auto;
+  padding: 16px 18px;
   overflow-x: auto;
-  padding: 10px 18px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  overflow-y: auto;
 }
 
-.term-log::-webkit-scrollbar { width: 6px; height: 6px; }
-.term-log::-webkit-scrollbar-track { background: #000; }
-.term-log::-webkit-scrollbar-thumb { background: #1a4a1a; border-radius: 3px; }
+.term-live::-webkit-scrollbar { width: 6px; height: 6px; }
+.term-live::-webkit-scrollbar-track { background: #000; }
+.term-live::-webkit-scrollbar-thumb { background: #1a4a1a; border-radius: 3px; }
 
-/* ── Lines ───────────────────────────────────── */
 .term-line {
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.83em;
-  line-height: 1.6;
+  line-height: 1.7;
   white-space: pre;
   color: #00ff00;
 }
