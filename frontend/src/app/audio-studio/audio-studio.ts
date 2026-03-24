@@ -96,6 +96,20 @@ export class AudioStudio implements OnInit, OnDestroy {
     return { id: this.nextSegId(), url, nombre, startTime, trimStart: 0, trimEnd: 0, duration };
   }
 
+  async onPianoTrack(event: { url: string; nombre: string }) {
+    const seg = await this.crearSegmento(event.url, event.nombre);
+    this.zone.run(() => {
+      this.pistas.push({
+        nombre: event.nombre,
+        activa: true,
+        color: this.nextColor(),
+        efectos: this.efectosDefault(),
+        segmentos: [seg],
+      });
+      this.pistas = [...this.pistas];
+    });
+  }
+
   async onAudioUrl(url: string) {
     const num = this.pistas.length + 1;
     const nombre = `Pista ${num}`;

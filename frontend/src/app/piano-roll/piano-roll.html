@@ -1,0 +1,60 @@
+<div class="pr-container">
+
+  <!-- TOOLBAR -->
+  <div class="pr-toolbar">
+    <h3>🎹 Piano Roll</h3>
+    <div class="pr-actions">
+      <button *ngIf="!isRecording" class="pr-btn pr-btn-rec" (click)="startRecording()">⏺ Grabar</button>
+      <button *ngIf="isRecording" class="pr-btn pr-btn-stop" (click)="stopRecording()">⏹ Detener</button>
+      <button class="pr-btn pr-btn-export" (click)="exportToTrack()"
+              [disabled]="!notes.length || isExporting">
+        {{ isExporting ? '⏳ Exportando...' : '🎵 Exportar a pista' }}
+      </button>
+      <button class="pr-btn pr-btn-clear" (click)="clearNotes()" [disabled]="!notes.length">🗑</button>
+      <span class="pr-rec-badge" *ngIf="isRecording">⏺ GRABANDO</span>
+    </div>
+    <div class="pr-key-hint">
+      <span>Blancas: <kbd>Z</kbd>–<kbd>M</kbd> · <kbd>Q</kbd>–<kbd>U</kbd></span>
+      <span>Negras: <kbd>S</kbd><kbd>D</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd> · <kbd>2</kbd><kbd>3</kbd><kbd>5</kbd><kbd>6</kbd><kbd>7</kbd></span>
+    </div>
+  </div>
+
+  <!-- PIANO ROLL BODY -->
+  <div class="pr-body">
+    <div class="pr-scroll">
+
+      <!-- One row per MIDI note (top=high, bottom=low) -->
+      <div *ngFor="let midi of midiRange"
+           class="pr-row"
+           [class.pr-row-black]="isBlack(midi)"
+           [class.pr-row-c]="isC(midi)">
+
+        <!-- Piano key -->
+        <div class="pr-key"
+             [class.pr-key-black]="isBlack(midi)"
+             [class.pr-key-active]="isActive(midi)"
+             (mousedown)="playNote(midi)"
+             (mouseup)="stopNote(midi)"
+             (mouseleave)="stopNote(midi)">
+          <span class="pr-key-label" *ngIf="isC(midi)">{{ noteName(midi) }}</span>
+        </div>
+
+        <!-- Note lane -->
+        <div class="pr-lane" [style.min-width.px]="timelineWidth">
+          <div *ngFor="let note of notesForMidi(midi)"
+               class="pr-note"
+               [style.left.px]="note.startTime * pxPerSecond"
+               [style.width.px]="noteWidth(note)"
+               [style.background]="noteColor(midi)"
+               [title]="noteName(midi)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Playhead -->
+      <div class="pr-playhead" [style.left.px]="LABEL_W + playheadTime * pxPerSecond"></div>
+
+    </div>
+  </div>
+
+</div>

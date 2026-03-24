@@ -197,6 +197,12 @@
     (seekTo)="onSeekTo($event)">
   </app-audio-timeline>
 
+  <!-- PIANO ROLL -->
+  <app-piano-roll
+    [playheadTime]="playheadTime"
+    (addTrack)="onPianoTrack($event)">
+  </app-piano-roll>
+
   <div class="empty-hint" *ngIf="pistas.length === 0">
     <p>Empieza grabando tu voz. Puedes agregar tantas pistas como quieras y escucharlas todas juntas. 🎶</p>
   </div>

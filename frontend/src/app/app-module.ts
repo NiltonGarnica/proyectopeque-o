@@ -17,6 +17,7 @@ import { AudioPlayer } from './audio-player/audio-player';
 import { AudioRecorder } from './audio-recorder/audio-recorder';
 import { AudioStudio } from './audio-studio/audio-studio';
 import { AudioTimeline } from './audio-timeline/audio-timeline';
+import { PianoRoll } from './piano-roll/piano-roll';
 
 @NgModule({
   declarations: [
@@ -31,6 +32,7 @@ import { AudioTimeline } from './audio-timeline/audio-timeline';
     AudioRecorder,
     AudioStudio,
     AudioTimeline,
+    PianoRoll,
   ],
   imports: [BrowserModule, FormsModule, HttpClientModule, AppRoutingModule],
   providers: [{ provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }],
