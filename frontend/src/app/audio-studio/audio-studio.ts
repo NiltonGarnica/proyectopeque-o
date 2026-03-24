@@ -59,6 +59,7 @@ export class AudioStudio implements OnInit, OnDestroy {
   private karaokeRecorder: MediaRecorder | null = null;
   private karaokeChunks: Blob[] = [];
   karaokeGrabando = false;
+  karaokeUrlLocal = '';   // URL descargable de la última grabación karaoke
 
   private liveSources: AudioBufferSourceNode[] = [];
   private colorIdx = 0;
@@ -219,17 +220,29 @@ export class AudioStudio implements OnInit, OnDestroy {
   }
 
   detenerKaraoke() {
-    if (this.karaokeGrabando) this.detenerGrabacionKaraoke();
-    this.karaokeActivo = false;
-    this.karaokeError = '';
-    this.karaokeSource?.disconnect();
-    this.karaokeSource = null;
-    this.karaokeStream?.getTracks().forEach(t => t.stop());
+    // Detener recorder si sigue activo
+    if (this.karaokeGrabando) {
+      try { this.karaokeRecorder?.stop(); } catch {}
+      this.karaokeGrabando = false;
+    }
+
+    // Apagar el micrófono inmediatamente (quita el indicador del navegador)
+    try { this.karaokeStream?.getTracks().forEach(t => t.stop()); } catch {}
     this.karaokeStream = null;
-    this.karaokeCtx?.close();
-    this.karaokeCtx = null;
+
+    // Desconectar el grafo de audio
+    try { this.karaokeSource?.disconnect(); } catch {}
+    this.karaokeSource = null;
+
     this.karaokeChain = null;
     this.karaokeCaptureDest = null;
+    this.karaokeActivo = false;
+    this.karaokeError = '';
+
+    // Cerrar el contexto con un pequeño delay para que el recorder termine de volcar datos
+    const ctx = this.karaokeCtx;
+    this.karaokeCtx = null;
+    setTimeout(() => { try { ctx?.close(); } catch {} }, 400);
   }
 
   iniciarGrabacionKaraoke() {
@@ -259,6 +272,7 @@ export class AudioStudio implements OnInit, OnDestroy {
     const localUrl = URL.createObjectURL(blob);
     const seg = await this.crearSegmento(localUrl, nombre);
     this.zone.run(() => {
+      this.karaokeUrlLocal = localUrl;   // disponible para descarga
       this.pistas.push({ nombre, activa: true, color: '#8b5cf6', efectos: this.efectosDefault(), segmentos: [seg] });
     });
     // Upload in background to make it persistent
@@ -274,6 +288,14 @@ export class AudioStudio implements OnInit, OnDestroy {
       },
       error: () => {}
     });
+  }
+
+  descargarKaraoke() {
+    if (!this.karaokeUrlLocal) return;
+    const a = document.createElement('a');
+    a.href = this.karaokeUrlLocal;
+    a.download = `karaoke-${Date.now()}.webm`;
+    a.click();
   }
 
   updateKaraokeChain() {

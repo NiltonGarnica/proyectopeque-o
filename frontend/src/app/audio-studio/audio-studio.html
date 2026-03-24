@@ -54,6 +54,9 @@
           <span class="karaoke-live-badge">🔴 EN VIVO</span>
           <span class="karaoke-rec-badge" *ngIf="karaokeGrabando">⏺ GRABANDO</span>
         </ng-container>
+        <button *ngIf="karaokeUrlLocal && !karaokeGrabando" class="btn-karaoke-dl" (click)="descargarKaraoke()">
+          ⬇ Descargar grabación
+        </button>
         <span class="karaoke-error" *ngIf="karaokeError">{{ karaokeError }}</span>
       </div>
 
