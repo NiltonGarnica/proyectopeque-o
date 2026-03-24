@@ -19,6 +19,8 @@ body {
 /* ── Sidebar layout ── */
 .main-content {
   min-height: 100vh;
+  position: relative;
+  z-index: 1;
 }
 
 .main-content.with-sidebar {

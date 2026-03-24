@@ -20,11 +20,13 @@ import { AudioTimeline } from './audio-timeline/audio-timeline';
 import { PianoRoll } from './piano-roll/piano-roll';
 import { Terminal } from './terminal/terminal';
 import { Nav } from './nav/nav';
+import { Particles } from './particles/particles';
 
 @NgModule({
   declarations: [
     AppComponent,
     Nav,
+    Particles,
     LoginComponent,
     DashboardComponent,
     Register,

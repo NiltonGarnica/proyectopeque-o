@@ -1,0 +1,11 @@
+<div class="particles-bg" *ngIf="visible" aria-hidden="true">
+  <span
+    *ngFor="let p of particles; trackBy: trackByIdx"
+    class="particle"
+    [style.left]="p.left"
+    [style.font-size]="p.fontSize"
+    [style.animation-duration]="p.duration"
+    [style.animation-delay]="p.delay"
+    [style.opacity]="p.opacity"
+    [style.--drift]="p.drift">{{ p.note }}</span>
+</div>
