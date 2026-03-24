@@ -12,7 +12,10 @@ export class AppComponent implements OnInit {
   constructor(private auth: AuthService, private activity: ActivityService) {}
 
   ngOnInit() {
+    // Registrar referencia antes de cualquier acción
     this.auth.setActivity(this.activity);
+
+    // Si ya hay sesión activa, arrancar pings inmediatamente
     if (this.auth.isLoggedIn()) {
       this.activity.start();
     }

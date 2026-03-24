@@ -41,18 +41,20 @@ export class Terminal implements OnInit, OnDestroy {
     this.http.get<UserActivity[]>(`${API}/api/activity/realtime-users`).subscribe({
       next: (users) => {
         const ts = this.timestamp();
-        if (users.length === 0) {
-          this.addLine(`[${ts}] — Sin usuarios activos`);
+        if (!users || users.length === 0) {
+          this.addLine(`[${ts}] — Sin usuarios activos (esperando pings...)`);
         } else {
+          this.addLine(`[${ts}] ● ${users.length} usuario(s) activo(s):`);
           users.forEach(u => {
-            const time = this.formatTime(u.timeOnSite);
-            const loc  = u.city ? `${u.city}, ${u.country}` : u.ip;
-            this.addLine(`[${ts}]  ${u.email}  |  ${u.ip}  |  ${loc}  |  ${u.page}  |  ${time}`);
+            const time  = this.formatTime(u.timeOnSite);
+            const email = u.email || '(desconocido)';
+            const loc   = (u.city && u.city !== '?') ? `${u.city}, ${u.country}` : u.ip;
+            this.addLine(`  └─ ${email}  |  ${u.ip}  |  ${loc}  |  ${u.page}  |  ⏱ ${time}`);
           });
         }
       },
-      error: () => {
-        this.addLine(`[${this.timestamp()}] ✖ Error al conectar con el servidor`);
+      error: (err) => {
+        this.addLine(`[${this.timestamp()}] ✖ Error HTTP ${err.status}: ${err.message}`);
       }
     });
   }
