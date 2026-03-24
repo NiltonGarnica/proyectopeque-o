@@ -200,7 +200,8 @@
   <!-- PIANO ROLL -->
   <app-piano-roll
     [playheadTime]="playheadTime"
-    (addTrack)="onPianoTrack($event)">
+    (addTrack)="onPianoTrack($event)"
+    (seekTo)="onSeekTo($event)">
   </app-piano-roll>
 
   <div class="empty-hint" *ngIf="pistas.length === 0">

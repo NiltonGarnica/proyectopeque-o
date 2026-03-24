@@ -16,12 +16,16 @@
     <div class="pr-key-hint">
       <span>Blancas: <kbd>Z</kbd>–<kbd>M</kbd> · <kbd>Q</kbd>–<kbd>U</kbd></span>
       <span>Negras: <kbd>S</kbd><kbd>D</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd> · <kbd>2</kbd><kbd>3</kbd><kbd>5</kbd><kbd>6</kbd><kbd>7</kbd></span>
+      <span class="pr-hint-click">🖱 Click en el timeline para mover el cabezal</span>
     </div>
   </div>
 
   <!-- PIANO ROLL BODY -->
   <div class="pr-body">
-    <div class="pr-scroll">
+    <div class="pr-scroll" #scrollEl
+         (click)="onLaneClick($event, scrollEl)"
+         (mousemove)="onLaneMouseMove($event, scrollEl)"
+         (mouseleave)="onLaneMouseLeave()">
 
       <!-- One row per MIDI note (top=high, bottom=low) -->
       <div *ngFor="let midi of midiRange"
@@ -29,13 +33,14 @@
            [class.pr-row-black]="isBlack(midi)"
            [class.pr-row-c]="isC(midi)">
 
-        <!-- Piano key -->
+        <!-- Piano key (stop click propagation so it doesn't seek) -->
         <div class="pr-key"
              [class.pr-key-black]="isBlack(midi)"
              [class.pr-key-active]="isActive(midi)"
-             (mousedown)="playNote(midi)"
+             (mousedown)="playNote(midi); $event.stopPropagation()"
              (mouseup)="stopNote(midi)"
-             (mouseleave)="stopNote(midi)">
+             (mouseleave)="stopNote(midi)"
+             (click)="$event.stopPropagation()">
           <span class="pr-key-label" *ngIf="isC(midi)">{{ noteName(midi) }}</span>
         </div>
 
@@ -49,6 +54,12 @@
                [title]="noteName(midi)">
           </div>
         </div>
+      </div>
+
+      <!-- Cursor hover line -->
+      <div class="pr-cursor-line"
+           *ngIf="cursorTime !== null"
+           [style.left.px]="LABEL_W + cursorTime * pxPerSecond">
       </div>
 
       <!-- Playhead -->
