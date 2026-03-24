@@ -1,0 +1,25 @@
+<div class="term-page">
+
+  <div class="term-header">
+    <div class="term-title">
+      <span class="term-dot red"></span>
+      <span class="term-dot yellow"></span>
+      <span class="term-dot green"></span>
+      <span class="term-name">powersound — terminal admin</span>
+    </div>
+    <div class="term-actions">
+      <button class="term-btn" (click)="clearTerminal()">Limpiar</button>
+      <button class="term-btn" routerLink="/admin">← Volver</button>
+    </div>
+  </div>
+
+  <div class="term-legend">
+    <span>[HH:mm:ss]&nbsp;&nbsp;email&nbsp;&nbsp;|&nbsp;&nbsp;ip&nbsp;&nbsp;|&nbsp;&nbsp;ciudad&nbsp;&nbsp;|&nbsp;&nbsp;página&nbsp;&nbsp;|&nbsp;&nbsp;tiempo en sitio</span>
+    <span class="term-live">● EN VIVO — actualiza cada 3s</span>
+  </div>
+
+  <div class="term-log" #logEl>
+    <div *ngFor="let line of lines" class="term-line">{{ line }}</div>
+  </div>
+
+</div>

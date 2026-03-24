@@ -8,7 +8,13 @@ const API = 'https://proyectopeque-o.onrender.com';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
 
+  private activityRef: { start: () => void; stop: () => void } | null = null;
+
   constructor(private http: HttpClient, private router: Router) {}
+
+  setActivity(svc: { start: () => void; stop: () => void }) {
+    this.activityRef = svc;
+  }
 
   login(correo: string, contraseña: string) {
     return this.http.post<any>(`${API}/auth/login`, { correo, contraseña }).pipe(
@@ -17,11 +23,13 @@ export class AuthService {
         localStorage.setItem('userId', res.userId);
         localStorage.setItem('nombre', res.nombre);
         localStorage.setItem('rol', res.rol);
+        this.activityRef?.start();
       })
     );
   }
 
   logout() {
+    this.activityRef?.stop();
     localStorage.clear();
     this.router.navigate(['/']);
   }

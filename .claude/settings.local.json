@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx ng:*)",
+      "Bash(ls:*)",
+      "WebFetch(domain:proyectopeque-o.onrender.com)",
+      "Bash(curl -s -X POST https://proyectopeque-o.onrender.com/auth/register -H \"Content-Type: application/json\" -d '{\"\"\"\"nombre\"\"\"\":\"\"\"\"Test User\"\"\"\",\"\"\"\"correo\"\"\"\":\"\"\"\"test@powersound.com\"\"\"\",\"\"\"\"contrase\\\\u00f1a\"\"\"\":\"\"\"\"test1234\"\"\"\"}')",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -X POST https://proyectopeque-o.onrender.com/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"correo\"\"\"\":\"\"\"\"noexiste@test.com\"\"\"\",\"\"\"\"contrase\\\\u00f1a\"\"\"\":\"\"\"\"1234\"\"\"\"}')",
+      "Bash(curl -s https://proyectopeque-o.onrender.com/reservas -H \"Authorization: Bearer tokeninvalido\")",
+      "Bash(curl -s -X POST https://proyectopeque-o.onrender.com/auth/register -H \"Content-Type: application/json\" -d '{\"\"\"\"nombre\"\"\"\":\"\"\"\"Test Powersound\"\"\"\",\"\"\"\"correo\"\"\"\":\"\"\"\"nuevo@powersound.com\"\"\"\",\"\"\"\"contrase\\\\u00f1a\"\"\"\":\"\"\"\"test1234\"\"\"\"}')",
+      "Bash(curl -s https://proyectopeque-o.onrender.com/)",
+      "Bash(curl -s -X POST https://proyectopeque-o.onrender.com/auth/register -H \"Content-Type: application/json\" -d '{\"\"\"\"nombre\"\"\"\":\"\"\"\"Test Powersound\"\"\"\",\"\"\"\"correo\"\"\"\":\"\"\"\"nuevo2@powersound.com\"\"\"\",\"\"\"\"contrase\\\\u00f1a\"\"\"\":\"\"\"\"test1234\"\"\"\"}')",
+      "Bash(python:*)",
+      "Bash(node -e \"const p = require\\(''./node_modules/multer-storage-cloudinary/package.json''\\); console.log\\(''peerDeps:'', JSON.stringify\\(p.peerDependencies, null, 2\\)\\)\")",
+      "Bash(node -e \":*)",
+      "Bash(npm run:*)",
+      "Bash(node -e \"const pkg = require\\(''./node_modules/tone/package.json''\\); console.log\\(pkg.version\\)\")"
+    ]
+  }
+}

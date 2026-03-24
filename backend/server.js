@@ -22,6 +22,7 @@ app.use("/reservas", require("./routes/reservas"));
 app.use("/proyectos", require("./routes/proyectos"));
 app.use("/pagos", require("./routes/pagos"));
 app.use("/api", require("./routes/audio.routes"));
+app.use("/api/activity", require("./routes/activity"));
 
 // Health check
 app.get("/", (req, res) => res.json({ status: "Powersound API funcionando" }));

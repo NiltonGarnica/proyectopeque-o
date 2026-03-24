@@ -7,6 +7,7 @@ import { Proyectos } from './proyectos/proyectos';
 import { Pagos } from './pagos/pagos';
 import { Admin } from './admin/admin';
 import { AudioStudio } from './audio-studio/audio-studio';
+import { Terminal } from './terminal/terminal';
 import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 
@@ -17,6 +18,7 @@ const routes: Routes = [
   { path: 'proyectos', component: Proyectos, canActivate: [AuthGuard] },
   { path: 'pagos', component: Pagos, canActivate: [AuthGuard] },
   { path: 'admin', component: Admin, canActivate: [AdminGuard] },
+  { path: 'admin/terminal', component: Terminal, canActivate: [AdminGuard] },
   { path: 'studio', component: AudioStudio, canActivate: [AuthGuard] }
 ];
 
