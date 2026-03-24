@@ -9,7 +9,7 @@
 .particle {
   position: absolute;
   bottom: -40px;
-  color: #22c55e;
+  color: #38bdf8;
   user-select: none;
   animation: floatUp linear infinite;
   will-change: transform, opacity;

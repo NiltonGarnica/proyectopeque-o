@@ -7,7 +7,8 @@ html, body {
 
 body {
   font-family: Arial, sans-serif;
-  background: #0f172a;
+  background: linear-gradient(135deg, #0a2540 0%, #0c3a6e 50%, #0ea5e9 100%);
+  background-attachment: fixed;
   color: white;
   min-height: 100vh;
 }
@@ -16,7 +17,7 @@ body {
   box-sizing: border-box;
 }
 
-/* ── Sidebar layout ── */
+/* ── Layout ── */
 .main-content {
   min-height: 100vh;
   position: relative;
@@ -28,23 +29,121 @@ body {
   padding: 28px;
 }
 
-/* ── Auth pages (login/register) — keep centered ── */
+/* ── Auth pages (login/register) ── */
 .container {
-  background: #1e293b;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  background: linear-gradient(135deg, rgba(14,165,233,0.18), rgba(56,189,248,0.10));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.18);
+  padding: 36px 32px;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
   text-align: center;
   margin: 60px auto;
   width: 100%;
   max-width: 460px;
-  box-sizing: border-box;
 }
 
 .dashboard {
   width: 100%;
   text-align: left;
 }
+
+/* ── Cards ── */
+.card, .dash-card, .stat-card, .resumen-card,
+.proyecto-card, .pago-item, .tabla-item,
+.studio-card, .mixer, .historial,
+.mezcla-item, .pista-item {
+  background: linear-gradient(135deg, rgba(14,165,233,0.15), rgba(56,189,248,0.08));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+}
+
+/* ── Inputs ── */
+input, select, textarea {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  border-bottom: 2px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.07);
+  color: white;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-bottom-color: #38bdf8;
+}
+
+input::placeholder, textarea::placeholder {
+  color: rgba(255,255,255,0.4);
+}
+
+select option {
+  background: #0a2540;
+  color: white;
+}
+
+/* ── Buttons ── */
+button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #22d3ee, #0ea5e9);
+  color: white;
+  cursor: pointer;
+  margin-top: 8px;
+  white-space: nowrap;
+  font-weight: 600;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 10px rgba(14,165,233,0.3);
+}
+
+button:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(14,165,233,0.5);
+}
+
+button:disabled {
+  opacity: 0.5;
+  transform: none;
+  cursor: not-allowed;
+}
+
+.btn-logout {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  box-shadow: 0 2px 10px rgba(239,68,68,0.3);
+  margin-top: 0;
+}
+.btn-logout:hover { box-shadow: 0 4px 16px rgba(239,68,68,0.5); }
+
+.btn-admin {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  box-shadow: 0 2px 10px rgba(124,58,237,0.3);
+  margin-top: 0;
+}
+
+.btn-studio {
+  background: linear-gradient(135deg, #22d3ee, #0891b2);
+  margin-top: 0;
+}
+
+.btn-back {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  margin-top: 0;
+  box-shadow: none;
+}
+.btn-back:hover { background: rgba(255,255,255,0.2); transform: none; }
+
+/* ── Typography ── */
+h1, h2, h3, h4 { color: #ffffff; }
+.hint, .sub, .meta { color: #bae6fd; }
 
 .header {
   display: flex;
@@ -61,60 +160,43 @@ body {
   flex-wrap: wrap;
 }
 
-input, select {
-  display: block;
-  width: 100%;
-  margin: 8px 0;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  box-sizing: border-box;
-  background: #0f172a;
-  color: white;
-}
-
-button {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 8px;
-  background: #22c55e;
-  color: white;
-  cursor: pointer;
-  margin-top: 8px;
-  white-space: nowrap;
-}
-
-button:hover { background: #16a34a; }
-
-.btn-logout { background: #ef4444; margin-top: 0; }
-.btn-logout:hover { background: #dc2626; }
-
-.btn-admin { background: #7c3aed; margin-top: 0; }
-.btn-admin:hover { background: #6d28d9; }
-
-.btn-studio { background: #0891b2; margin-top: 0; }
-.btn-studio:hover { background: #0e7490; }
-
-.btn-back { background: #334155; margin-top: 0; }
-.btn-back:hover { background: #475569; }
-
-.error { color: #f87171; font-size: 0.9em; }
-.exito { color: #4ade80; font-size: 0.9em; }
+.error  { color: #fca5a5; font-size: 0.9em; }
+.exito  { color: #86efac; font-size: 0.9em; }
 
 ul { padding: 0; list-style: none; }
 
 li {
-  background: #1e293b;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   margin: 6px 0;
 }
 
-.estado { color: #22c55e; font-weight: bold; }
+.estado { color: #34d399; font-weight: bold; }
 
-.link { margin-top: 16px; font-size: 0.9em; color: #94a3b8; }
-.link a { color: #22c55e; text-decoration: none; }
+.link { margin-top: 16px; font-size: 0.9em; color: #bae6fd; }
+.link a { color: #38bdf8; text-decoration: none; }
 .link a:hover { text-decoration: underline; }
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.8em;
+  font-weight: bold;
+  color: white;
+}
+
+/* ── Page header ── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 
 /* ── Mobile ── */
 @media (max-width: 768px) {
@@ -128,7 +210,7 @@ li {
   .container {
     margin: 0 auto;
     border-radius: 0;
-    padding: 16px 14px;
+    padding: 20px 16px;
     min-height: 100vh;
     box-shadow: none;
     max-width: 100%;
@@ -147,7 +229,7 @@ li {
     text-align: center;
   }
 
-  input, select { font-size: 16px; }
+  input, select, textarea { font-size: 16px; }
   button { font-size: 0.9em; padding: 9px 12px; }
   li { font-size: 0.88em; padding: 8px 10px; word-break: break-word; }
 }
