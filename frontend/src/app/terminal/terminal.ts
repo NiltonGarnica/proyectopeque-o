@@ -3,6 +3,15 @@ import { HttpClient } from '@angular/common/http';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
+interface ActiveUser {
+  key: string;
+  email: string;
+  ip: string;
+  loc: string;
+  page: string;
+  joinedAt: number;
+}
+
 @Component({
   selector: 'app-terminal',
   standalone: false,
@@ -11,9 +20,15 @@ const API = 'https://proyectopeque-o.onrender.com';
 })
 export class Terminal implements OnInit, OnDestroy {
 
+  // Event log — only appends on new users
   lines: string[] = [];
+
+  // Live table — updated in place every tick
+  activeUsers: ActiveUser[] = [];
+
   private pollTimer: any = null;
-  private ready = false;
+  private tickTimer: any = null;
+  private knownKeys = new Set<string>();
 
   constructor(private http: HttpClient, private cd: ChangeDetectorRef) {}
 
@@ -24,15 +39,16 @@ export class Terminal implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.pollTimer) clearInterval(this.pollTimer);
+    if (this.tickTimer)  clearInterval(this.tickTimer);
   }
 
   private wakeBackend() {
     this.http.get(`${API}/`).subscribe({
       next: () => {
-        this.log('▶ Servidor activo. Escuchando usuarios...');
-        this.ready = true;
+        this.log('▶ Servidor activo. Escuchando...');
         this.poll();
         this.pollTimer = setInterval(() => this.poll(), 3000);
+        this.tickTimer  = setInterval(() => this.cd.detectChanges(), 1000);
       },
       error: (e) => {
         this.log(`▶ Servidor no responde (${e.status || 'timeout'}). Reintentando en 8s...`);
@@ -44,47 +60,82 @@ export class Terminal implements OnInit, OnDestroy {
   private poll() {
     this.http.get<any[]>(`${API}/api/activity/realtime-users`).subscribe({
       next: (users) => {
-        const t = this.ts();
-        if (!users || users.length === 0) {
-          this.log(`[${t}] Sin usuarios activos`);
-        } else {
-          this.log(`[${t}] ● ${users.length} usuario(s):`);
-          const header =
-            '         ' +
-            this.pad('EMAIL', 25) + ' | ' +
-            this.pad('IP', 15) + ' | ' +
-            this.pad('CIUDAD', 15) + ' | ' +
-            this.pad('PÁGINA', 20) + ' | ' +
-            'TIEMPO';
-          this.log(header);
-          this.log('         ' + '-'.repeat(98));
-          for (const u of users) {
-            const loc = u.city && u.city !== '?' ? `${u.city}, ${u.country}` : u.ip;
-            const line =
-              `[${t}] ` +
-              this.pad(u.email || '?', 25) + ' | ' +
-              this.pad(u.ip || '?', 15) + ' | ' +
-              this.pad(loc, 15) + ' | ' +
-              this.pad(u.page || '/', 20) + ' | ' +
-              this.fmt(u.timeOnSite);
-            this.log(line);
+        const now = Date.now();
+        const incoming = (users || []).map(u => {
+          const key = (u.email || '?') + '|' + (u.ip || '?');
+          return {
+            key,
+            email: u.email || '?',
+            ip:    u.ip    || '?',
+            loc:   u.city && u.city !== '?' ? `${u.city}, ${u.country}` : (u.ip || '?'),
+            page:  u.page  || '/',
+            joinedAt: now - (u.timeOnSite || 0),
+          };
+        });
+
+        const incomingKeys = new Set(incoming.map(u => u.key));
+
+        // Detect NEW users → append to log
+        for (const u of incoming) {
+          if (!this.knownKeys.has(u.key)) {
+            this.knownKeys.add(u.key);
+            this.log(
+              `[${this.ts()}] NUEVO  ` +
+              this.pad(u.email, 25) + ' | ' +
+              this.pad(u.ip,    15) + ' | ' +
+              this.pad(u.loc,   18) + ' | ' +
+              u.page
+            );
           }
         }
+
+        // Detect users that LEFT → log + remove
+        for (const key of Array.from(this.knownKeys)) {
+          if (!incomingKeys.has(key)) {
+            this.knownKeys.delete(key);
+            const gone = this.activeUsers.find(u => u.key === key);
+            if (gone) {
+              this.log(`[${this.ts()}] SALIÓ  ${gone.email}`);
+            }
+          }
+        }
+
+        // Update live table (page may change, keep joinedAt)
+        this.activeUsers = incoming.map(u => {
+          const existing = this.activeUsers.find(x => x.key === u.key);
+          return { ...u, joinedAt: existing ? existing.joinedAt : u.joinedAt };
+        });
+
+        this.cd.detectChanges();
       },
       error: (e) => {
         this.log(`[${this.ts()}] Error ${e.status}: ${e.statusText || e.message}`);
         if (e.status === 401 || e.status === 403) {
           this.log('  → Cierra sesión y vuelve a entrar como admin.');
-          this.ready = false;
           if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
+          if (this.tickTimer)  { clearInterval(this.tickTimer);  this.tickTimer  = null; }
         }
       }
     });
   }
 
-  private pad(text: string, length: number): string {
-    const str = (text || '').substring(0, length);
-    return str.padEnd(length, ' ');
+  // Returns a formatted row string for the live table
+  formatUser(u: ActiveUser): string {
+    return (
+      this.pad(u.email, 25) + ' | ' +
+      this.pad(u.ip,    15) + ' | ' +
+      this.pad(u.loc,   18) + ' | ' +
+      this.pad(u.page,  20) + ' | ' +
+      this.elapsed(u.joinedAt)
+    );
+  }
+
+  pad(text: string, length: number): string {
+    return (text || '').substring(0, length).padEnd(length, ' ');
+  }
+
+  elapsed(joinedAt: number): string {
+    return this.fmt(Date.now() - joinedAt);
   }
 
   private log(text: string) {

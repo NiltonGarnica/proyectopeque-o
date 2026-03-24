@@ -14,6 +14,7 @@
   box-sizing: border-box;
 }
 
+/* ── Header ─────────────────────────────────── */
 .term-header {
   display: flex;
   align-items: center;
@@ -26,32 +27,16 @@
   flex-shrink: 0;
 }
 
-.term-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.term-title { display: flex; align-items: center; gap: 8px; }
 
-.term-dot {
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
+.term-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .term-dot.red    { background: #ff5f57; }
 .term-dot.yellow { background: #ffbd2e; }
 .term-dot.green  { background: #28ca41; }
 
-.term-name {
-  font-size: 0.85em;
-  color: #555;
-  letter-spacing: 0.04em;
-}
+.term-name { font-size: 0.85em; color: #555; letter-spacing: 0.04em; }
 
-.term-actions {
-  display: flex;
-  gap: 8px;
-}
+.term-actions { display: flex; gap: 8px; }
 
 .term-btn {
   background: transparent;
@@ -65,11 +50,25 @@
 }
 .term-btn:hover { background: #00ff00; color: #000; }
 
+/* ── Live user table ─────────────────────────── */
+.term-live {
+  padding: 14px 18px 8px;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+/* ── Divider ─────────────────────────────────── */
+.term-divider {
+  border-top: 1px solid #1a3d1a;
+  margin: 0 18px;
+}
+
+/* ── Event log ───────────────────────────────── */
 .term-log {
   flex: 1;
   overflow-y: auto;
   overflow-x: auto;
-  padding: 14px 18px;
+  padding: 10px 18px 14px;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -79,6 +78,7 @@
 .term-log::-webkit-scrollbar-track { background: #000; }
 .term-log::-webkit-scrollbar-thumb { background: #1a4a1a; border-radius: 3px; }
 
+/* ── Lines ───────────────────────────────────── */
 .term-line {
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.83em;
@@ -87,7 +87,9 @@
   color: #00ff00;
 }
 
+.term-line.dim { color: #2a6a2a; }
+
 @media (max-width: 640px) {
-  .term-line { font-size: 0.7em; }
+  .term-line { font-size: 0.68em; }
   .term-name { display: none; }
 }
