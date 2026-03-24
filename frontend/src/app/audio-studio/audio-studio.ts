@@ -55,6 +55,10 @@ export class AudioStudio implements OnInit, OnDestroy {
   private karaokeStream: MediaStream | null = null;
   private karaokeChain: (LiveChain & { input: GainNode }) | null = null;
   private karaokeSource: MediaStreamAudioSourceNode | null = null;
+  private karaokeCaptureDest: MediaStreamAudioDestinationNode | null = null;
+  private karaokeRecorder: MediaRecorder | null = null;
+  private karaokeChunks: Blob[] = [];
+  karaokeGrabando = false;
 
   private liveSources: AudioBufferSourceNode[] = [];
   private colorIdx = 0;
@@ -201,6 +205,7 @@ export class AudioStudio implements OnInit, OnDestroy {
   }
 
   detenerKaraoke() {
+    if (this.karaokeGrabando) this.detenerGrabacionKaraoke();
     this.karaokeActivo = false;
     this.karaokeError = '';
     this.karaokeSource?.disconnect();
@@ -210,6 +215,51 @@ export class AudioStudio implements OnInit, OnDestroy {
     this.karaokeCtx?.close();
     this.karaokeCtx = null;
     this.karaokeChain = null;
+    this.karaokeCaptureDest = null;
+  }
+
+  iniciarGrabacionKaraoke() {
+    if (!this.karaokeCaptureDest || this.karaokeGrabando) return;
+    this.karaokeChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    this.karaokeRecorder = new MediaRecorder(this.karaokeCaptureDest.stream, { mimeType });
+    this.karaokeRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) this.karaokeChunks.push(e.data);
+    };
+    this.karaokeRecorder.onstop = () => { this.guardarGrabacionKaraoke(); };
+    this.karaokeRecorder.start(100);
+    this.karaokeGrabando = true;
+  }
+
+  detenerGrabacionKaraoke() {
+    this.karaokeRecorder?.stop();
+    this.karaokeGrabando = false;
+  }
+
+  private async guardarGrabacionKaraoke() {
+    const blob = new Blob(this.karaokeChunks, { type: 'audio/webm' });
+    const num = this.pistas.length + 1;
+    const nombre = `Karaoke ${num}`;
+    // Add immediately with local blob URL so user can use it right away
+    const localUrl = URL.createObjectURL(blob);
+    const seg = await this.crearSegmento(localUrl, nombre);
+    this.zone.run(() => {
+      this.pistas.push({ nombre, activa: true, color: '#8b5cf6', efectos: this.efectosDefault(), segmentos: [seg] });
+    });
+    // Upload in background to make it persistent
+    const formData = new FormData();
+    formData.append('audio', blob, `karaoke-${Date.now()}.webm`);
+    this.http.post<any>(`${API}/api/upload-audio`, formData).subscribe({
+      next: async (res) => {
+        const dur = await this.getDuration(res.url);
+        this.zone.run(() => {
+          const track = this.pistas.find(p => p.nombre === nombre && p.segmentos[0]?.url === localUrl);
+          if (track) { track.segmentos[0].url = res.url; track.segmentos[0].duration = dur; }
+        });
+      },
+      error: () => {}
+    });
   }
 
   updateKaraokeChain() {
@@ -231,6 +281,13 @@ export class AudioStudio implements OnInit, OnDestroy {
   private crearCadenaKaraoke(ctx: AudioContext, ef: EfectosPista & { tono: number }):
     LiveChain & { input: GainNode } {
 
+    // Master output → speakers AND capture destination
+    const master = ctx.createGain();
+    master.gain.value = 1;
+    master.connect(ctx.destination);
+    this.karaokeCaptureDest = ctx.createMediaStreamDestination();
+    master.connect(this.karaokeCaptureDest);
+
     const gain = ctx.createGain();
     gain.gain.value = ef.volumen;
 
@@ -242,7 +299,7 @@ export class AudioStudio implements OnInit, OnDestroy {
 
     gain.connect(bass);
     bass.connect(treble);
-    treble.connect(ctx.destination);
+    treble.connect(master); // → master (captured + speakers)
 
     // Eco
     const delay = ctx.createDelay(1.0); delay.delayTime.value = 0.3;
@@ -250,13 +307,13 @@ export class AudioStudio implements OnInit, OnDestroy {
     const ecoWet = ctx.createGain(); ecoWet.gain.value = ef.eco;
     treble.connect(ecoWet); ecoWet.connect(delay);
     delay.connect(feedback); feedback.connect(delay);
-    delay.connect(ctx.destination);
+    delay.connect(master); // → master
 
     // Reverb
     const conv = ctx.createConvolver();
     conv.buffer = this.crearImpulso(ctx, 2.5, 2);
     const reverbWet = ctx.createGain(); reverbWet.gain.value = ef.reverb;
-    treble.connect(conv); conv.connect(reverbWet); reverbWet.connect(ctx.destination);
+    treble.connect(conv); conv.connect(reverbWet); reverbWet.connect(master); // → master
 
     return { input: gain, gain, bass, treble, ecoWet, reverbWet };
   }

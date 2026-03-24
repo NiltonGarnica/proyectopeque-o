@@ -44,7 +44,16 @@
         <button *ngIf="karaokeActivo" class="btn-karaoke-stop" (click)="detenerKaraoke()">
           ⏹ Cerrar micrófono
         </button>
-        <span class="karaoke-live-badge" *ngIf="karaokeActivo">🔴 EN VIVO</span>
+        <ng-container *ngIf="karaokeActivo">
+          <button *ngIf="!karaokeGrabando" class="btn-karaoke-rec" (click)="iniciarGrabacionKaraoke()">
+            ⏺ Grabar con efectos
+          </button>
+          <button *ngIf="karaokeGrabando" class="btn-karaoke-rec-stop" (click)="detenerGrabacionKaraoke()">
+            ⏹ Detener grabación
+          </button>
+          <span class="karaoke-live-badge">🔴 EN VIVO</span>
+          <span class="karaoke-rec-badge" *ngIf="karaokeGrabando">⏺ GRABANDO</span>
+        </ng-container>
         <span class="karaoke-error" *ngIf="karaokeError">{{ karaokeError }}</span>
       </div>
 

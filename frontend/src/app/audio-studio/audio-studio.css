@@ -95,6 +95,43 @@
   50% { opacity: 0.55; }
 }
 
+.btn-karaoke-rec {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.95em;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-karaoke-rec:hover { background: #ef4444; }
+
+.btn-karaoke-rec-stop {
+  background: #92400e;
+  color: #fde68a;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.95em;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-karaoke-rec-stop:hover { background: #b45309; }
+
+.karaoke-rec-badge {
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.78em;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.08em;
+  animation: pulse-red 0.8s infinite;
+}
+
 .karaoke-error {
   color: #f87171;
   font-size: 0.85em;
