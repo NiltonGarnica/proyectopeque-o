@@ -31,11 +31,44 @@
   flex-wrap: wrap;
 }
 
+/* OCTAVE CONTROLS */
+.pr-oct-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.pr-oct-label {
+  font-size: 0.8em;
+  color: #60a5fa;
+  font-weight: 600;
+  min-width: 76px;
+  text-align: center;
+  font-family: monospace;
+}
+
+.pr-btn-oct {
+  background: #1e293b;
+  border: none;
+  border-radius: 5px;
+  padding: 4px 10px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.78em;
+}
+
+.pr-btn-oct:not(:disabled):hover { background: #334155; color: #fff; }
+.pr-btn-oct:disabled { opacity: 0.3; cursor: default; }
+
 .pr-btn {
   background: #334155;
   border: none;
   border-radius: 6px;
-  padding: 6px 14px;
+  padding: 6px 12px;
   color: #fff;
   cursor: pointer;
   font-size: 0.82em;
@@ -74,16 +107,11 @@
 
 .pr-key-hint {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   margin-left: auto;
-  font-size: 0.72em;
+  font-size: 0.70em;
   color: #64748b;
   flex-wrap: wrap;
-}
-
-.pr-hint-click {
-  color: #475569;
-  font-style: italic;
 }
 
 .pr-key-hint kbd {
@@ -95,7 +123,7 @@
   color: #94a3b8;
 }
 
-/* BODY */
+/* BODY — fixed height with both scrollbars */
 .pr-body {
   overflow: hidden;
 }
@@ -104,47 +132,55 @@
   position: relative;
   overflow-x: auto;
   overflow-y: auto;
-  max-height: 500px;
+  height: 420px;       /* shows ~21 rows; user scrolls to see all 88 */
   cursor: crosshair;
 }
+
+/* Scrollbar styling */
+.pr-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.pr-scroll::-webkit-scrollbar-track { background: #0f172a; }
+.pr-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+.pr-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+.pr-scroll::-webkit-scrollbar-corner { background: #0f172a; }
 
 /* ROWS */
 .pr-row {
   display: flex;
   height: 20px;
   border-bottom: 1px solid #0d1526;
+  min-width: max-content;
 }
 
 .pr-row-black {
-  background: #0a111f;
+  background: #080f1e;
 }
 
 .pr-row-c {
-  border-bottom: 1px solid #1e3a5f;
+  border-bottom: 2px solid #1e3a5f;
 }
 
 /* PIANO KEYS (left column) */
 .pr-key {
-  width: 88px;
-  min-width: 88px;
+  width: 96px;
+  min-width: 96px;
   height: 100%;
   position: sticky;
   left: 0;
   z-index: 5;
-  background: #e2e8f0;
+  background: linear-gradient(to right, #e2e8f0, #f8fafc);
   border-right: 2px solid #94a3b8;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding-right: 6px;
+  padding-right: 7px;
   cursor: pointer;
   user-select: none;
   box-sizing: border-box;
-  transition: background 0.05s;
+  transition: background 0.04s;
 }
 
 .pr-key-black {
-  background: #1e293b;
+  background: linear-gradient(to right, #1e293b, #0f172a);
   border-right: 2px solid #0f172a;
 }
 
@@ -157,10 +193,11 @@
 }
 
 .pr-key-label {
-  font-size: 0.62em;
+  font-size: 0.60em;
   color: #64748b;
-  font-weight: 600;
+  font-weight: 700;
   pointer-events: none;
+  letter-spacing: 0.02em;
 }
 
 .pr-key-black .pr-key-label {
@@ -187,9 +224,9 @@
   top: 2px;
   height: calc(100% - 4px);
   border-radius: 3px;
-  opacity: 0.9;
+  opacity: 0.92;
   min-width: 6px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
   pointer-events: none;
 }
 
@@ -210,7 +247,7 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.18);
   pointer-events: none;
   z-index: 9;
 }
@@ -218,6 +255,6 @@
 /* RESPONSIVE */
 @media (max-width: 640px) {
   .pr-key-hint { display: none; }
-  .pr-key { width: 60px; min-width: 60px; }
-  .pr-scroll { max-height: 360px; }
+  .pr-key { width: 64px; min-width: 64px; }
+  .pr-scroll { height: 300px; }
 }

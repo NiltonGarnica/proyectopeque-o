@@ -3,20 +3,28 @@
   <!-- TOOLBAR -->
   <div class="pr-toolbar">
     <h3>🎹 Piano Roll</h3>
+
     <div class="pr-actions">
       <button *ngIf="!isRecording" class="pr-btn pr-btn-rec" (click)="startRecording()">⏺ Grabar</button>
       <button *ngIf="isRecording" class="pr-btn pr-btn-stop" (click)="stopRecording()">⏹ Detener</button>
       <button class="pr-btn pr-btn-export" (click)="exportToTrack()"
               [disabled]="!notes.length || isExporting">
-        {{ isExporting ? '⏳ Exportando...' : '🎵 Exportar a pista' }}
+        {{ isExporting ? '⏳...' : '🎵 Exportar' }}
       </button>
       <button class="pr-btn pr-btn-clear" (click)="clearNotes()" [disabled]="!notes.length">🗑</button>
       <span class="pr-rec-badge" *ngIf="isRecording">⏺ GRABANDO</span>
     </div>
+
+    <!-- Octave shift -->
+    <div class="pr-oct-controls">
+      <button class="pr-btn pr-btn-oct" (click)="shiftOctave(-1)" [disabled]="octaveShift <= OCT_MIN">◀ Oct</button>
+      <span class="pr-oct-label">{{ keyRangeLabel }}</span>
+      <button class="pr-btn pr-btn-oct" (click)="shiftOctave(1)" [disabled]="octaveShift >= OCT_MAX">Oct ▶</button>
+    </div>
+
     <div class="pr-key-hint">
       <span>Blancas: <kbd>Z</kbd>–<kbd>M</kbd> · <kbd>Q</kbd>–<kbd>U</kbd></span>
       <span>Negras: <kbd>S</kbd><kbd>D</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd> · <kbd>2</kbd><kbd>3</kbd><kbd>5</kbd><kbd>6</kbd><kbd>7</kbd></span>
-      <span class="pr-hint-click">🖱 Click en el timeline para mover el cabezal</span>
     </div>
   </div>
 
@@ -33,7 +41,7 @@
            [class.pr-row-black]="isBlack(midi)"
            [class.pr-row-c]="isC(midi)">
 
-        <!-- Piano key (stop click propagation so it doesn't seek) -->
+        <!-- Piano key -->
         <div class="pr-key"
              [class.pr-key-black]="isBlack(midi)"
              [class.pr-key-active]="isActive(midi)"
@@ -41,7 +49,7 @@
              (mouseup)="stopNote(midi)"
              (mouseleave)="stopNote(midi)"
              (click)="$event.stopPropagation()">
-          <span class="pr-key-label" *ngIf="isC(midi)">{{ noteName(midi) }}</span>
+          <span class="pr-key-label" *ngIf="showLabel(midi)">{{ noteName(midi) }}</span>
         </div>
 
         <!-- Note lane -->
