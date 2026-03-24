@@ -18,6 +18,8 @@ interface LiveChain {
   gain: GainNode;
   bass: BiquadFilterNode;
   treble: BiquadFilterNode;
+  ecoWet: GainNode;
+  reverbWet: GainNode;
 }
 
 @Component({
@@ -41,7 +43,9 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   // Live audio nodes per pista index (only active during playback)
   liveChains = new Map<number, LiveChain>();
+  velocidad = 1;
 
+  private liveSources: AudioBufferSourceNode[] = [];
   private colorIdx = 0;
   private segCounter = 0;
   private audioContext: AudioContext | null = null;
@@ -178,6 +182,28 @@ export class AudioStudio implements OnInit, OnDestroy {
     }
   }
 
+  updateLiveEco(pistaIdx: number, ef: EfectosPista) {
+    const chain = this.liveChains.get(pistaIdx);
+    if (chain && this.audioContext) {
+      chain.ecoWet.gain.setTargetAtTime(ef.eco, this.audioContext.currentTime, 0.05);
+    }
+  }
+
+  updateLiveReverb(pistaIdx: number, ef: EfectosPista) {
+    const chain = this.liveChains.get(pistaIdx);
+    if (chain && this.audioContext) {
+      chain.reverbWet.gain.setTargetAtTime(ef.reverb, this.audioContext.currentTime, 0.05);
+    }
+  }
+
+  updateLiveVelocidad() {
+    if (!this.audioContext) return;
+    const t = this.audioContext.currentTime;
+    for (const src of this.liveSources) {
+      src.playbackRate.setTargetAtTime(this.velocidad, t, 0.05);
+    }
+  }
+
   // ---- PLAYBACK ----
 
   async mezclarYReproducir() {
@@ -188,6 +214,7 @@ export class AudioStudio implements OnInit, OnDestroy {
     this.mensajeExport = 'Cargando pistas...';
     this.reproduciendo = true;
     this.liveChains.clear();
+    this.liveSources = [];
 
     try {
       const ctx = new AudioContext();
@@ -238,6 +265,8 @@ export class AudioStudio implements OnInit, OnDestroy {
 
         const src = ctx.createBufferSource();
         src.buffer = buffers[i];
+        src.playbackRate.value = this.velocidad;
+        this.liveSources.push(src);
         src.connect(chain.input);
 
         let when: number, offset: number, duration: number;
@@ -270,6 +299,7 @@ export class AudioStudio implements OnInit, OnDestroy {
         this.reproduciendo = false;
         this.mensajeExport = '';
         this.liveChains.clear();
+        this.liveSources = [];
         if (this.playheadInterval) { clearInterval(this.playheadInterval); this.playheadInterval = null; }
         ctx.close();
         this.audioContext = null;
@@ -280,6 +310,7 @@ export class AudioStudio implements OnInit, OnDestroy {
         this.reproduciendo = false;
         this.mensajeExport = 'Error al cargar pistas';
         this.liveChains.clear();
+        this.liveSources = [];
         console.error(err);
         if (this.playheadInterval) { clearInterval(this.playheadInterval); this.playheadInterval = null; }
         this.audioContext?.close();
@@ -292,6 +323,7 @@ export class AudioStudio implements OnInit, OnDestroy {
     this.reproduciendo = false;
     this.mensajeExport = '';
     this.liveChains.clear();
+    this.liveSources = [];
     if (this.playheadInterval) { clearInterval(this.playheadInterval); this.playheadInterval = null; }
     if (this.audioContext) { this.audioContext.close(); this.audioContext = null; }
   }
@@ -418,7 +450,7 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   // ---- AUDIO EFFECTS ----
 
-  // For live playback: creates a shared chain per pista and returns node refs
+  // For live playback: always creates eco+reverb nodes (gain=0 if off) for real-time control
   private crearCadenaEfectos(ctx: AudioContext, ef: EfectosPista): LiveChain & { input: GainNode } {
     const gain = ctx.createGain();
     gain.gain.value = ef.volumen;
@@ -433,23 +465,21 @@ export class AudioStudio implements OnInit, OnDestroy {
     bass.connect(treble);
     treble.connect(ctx.destination);
 
-    if (ef.eco > 0) {
-      const delay = ctx.createDelay(1.0); delay.delayTime.value = 0.3;
-      const feedback = ctx.createGain(); feedback.gain.value = ef.eco * 0.6;
-      const wet = ctx.createGain(); wet.gain.value = ef.eco;
-      treble.connect(wet); wet.connect(delay);
-      delay.connect(feedback); feedback.connect(delay);
-      delay.connect(ctx.destination);
-    }
+    // Eco — always connected, wet=0 when off (allows live activation)
+    const delay = ctx.createDelay(1.0); delay.delayTime.value = 0.3;
+    const feedback = ctx.createGain(); feedback.gain.value = 0.6;
+    const ecoWet = ctx.createGain(); ecoWet.gain.value = ef.eco;
+    treble.connect(ecoWet); ecoWet.connect(delay);
+    delay.connect(feedback); feedback.connect(delay);
+    delay.connect(ctx.destination);
 
-    if (ef.reverb > 0) {
-      const conv = ctx.createConvolver();
-      conv.buffer = this.crearImpulso(ctx, 2.5, 2);
-      const wet = ctx.createGain(); wet.gain.value = ef.reverb;
-      treble.connect(conv); conv.connect(wet); wet.connect(ctx.destination);
-    }
+    // Reverb — always connected, wet=0 when off (allows live activation)
+    const conv = ctx.createConvolver();
+    conv.buffer = this.crearImpulso(ctx, 2.5, 2);
+    const reverbWet = ctx.createGain(); reverbWet.gain.value = ef.reverb;
+    treble.connect(conv); conv.connect(reverbWet); reverbWet.connect(ctx.destination);
 
-    return { input: gain, gain, bass, treble };
+    return { input: gain, gain, bass, treble, ecoWet, reverbWet };
   }
 
   // For offline export (no node refs needed)

@@ -49,6 +49,14 @@
       </div>
     </div>
 
+    <div class="speed-row">
+      <label>⚡ Velocidad</label>
+      <input type="range" min="0.25" max="3" step="0.05" [(ngModel)]="velocidad"
+             (input)="updateLiveVelocidad()">
+      <span class="speed-val">{{ velocidad.toFixed(2) }}x</span>
+      <button class="speed-reset" (click)="velocidad = 1; updateLiveVelocidad()" title="Resetear">↺</button>
+    </div>
+
     <div class="pista-wrapper" *ngFor="let p of pistas; let i = index">
       <div class="pista-item">
         <div class="pista-nombre">
@@ -89,12 +97,14 @@
         </div>
         <div class="efecto-row">
           <label>Eco</label>
-          <input type="range" min="0" max="1" step="0.05" [(ngModel)]="p.efectos.eco">
+          <input type="range" min="0" max="1" step="0.05" [(ngModel)]="p.efectos.eco"
+                 (input)="updateLiveEco(i, p.efectos)">
           <span>{{ (p.efectos.eco * 100).toFixed(0) }}%</span>
         </div>
         <div class="efecto-row">
           <label>Reverb</label>
-          <input type="range" min="0" max="1" step="0.05" [(ngModel)]="p.efectos.reverb">
+          <input type="range" min="0" max="1" step="0.05" [(ngModel)]="p.efectos.reverb"
+                 (input)="updateLiveReverb(i, p.efectos)">
           <span>{{ (p.efectos.reverb * 100).toFixed(0) }}%</span>
         </div>
       </div>
