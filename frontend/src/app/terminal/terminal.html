@@ -15,7 +15,7 @@
 
   <div class="term-legend">
     <span>[HH:mm:ss]&nbsp;&nbsp;email&nbsp;&nbsp;|&nbsp;&nbsp;ip&nbsp;&nbsp;|&nbsp;&nbsp;ciudad&nbsp;&nbsp;|&nbsp;&nbsp;página&nbsp;&nbsp;|&nbsp;&nbsp;tiempo en sitio</span>
-    <span class="term-live">● EN VIVO — actualiza cada 3s</span>
+    <span class="term-live" [class.term-warn]="status !== 'EN VIVO'">● {{ status }} — actualiza cada 3s</span>
   </div>
 
   <div class="term-log" #logEl>
