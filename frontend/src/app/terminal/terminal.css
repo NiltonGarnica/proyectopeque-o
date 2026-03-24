@@ -1,10 +1,12 @@
 :host {
   display: block;
   width: 100%;
+  max-width: none;
 }
 
 .term-page {
-  width: 100%;
+  width: 100vw;
+  max-width: 100vw;
   min-height: 100vh;
   background: #000;
   display: flex;
@@ -12,6 +14,7 @@
   font-family: 'Courier New', Courier, monospace;
   color: #00ff00;
   box-sizing: border-box;
+  padding: 0;
 }
 
 .term-header {
@@ -19,11 +22,13 @@
   align-items: center;
   justify-content: space-between;
   background: #111;
-  padding: 10px 16px;
+  padding: 10px 20px;
   border-bottom: 1px solid #1a3d1a;
   flex-wrap: wrap;
   gap: 8px;
   flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .term-title {
@@ -69,10 +74,12 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: auto;
-  padding: 14px 18px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .term-log::-webkit-scrollbar { width: 6px; height: 6px; }
