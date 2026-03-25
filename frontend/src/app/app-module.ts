@@ -21,12 +21,14 @@ import { PianoRoll } from './piano-roll/piano-roll';
 import { Terminal } from './terminal/terminal';
 import { Nav } from './nav/nav';
 import { Particles } from './particles/particles';
+import { AudioPianoRoll } from './audio-piano-roll/audio-piano-roll';
 
 @NgModule({
   declarations: [
     AppComponent,
     Nav,
     Particles,
+    AudioPianoRoll,
     LoginComponent,
     DashboardComponent,
     Register,

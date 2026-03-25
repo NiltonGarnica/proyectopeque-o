@@ -32,6 +32,19 @@
       <app-audio-player [src]="playerSrc"></app-audio-player>
     </div>
 
+    <!-- PIANO ROLL EDITOR -->
+    <div class="studio-card" style="grid-column: 1 / -1">
+      <div class="piano-roll-header">
+        <h3>🎹 Piano Roll</h3>
+        <button class="btn-piano-roll-toggle" (click)="showPianoRollEditor = !showPianoRollEditor">
+          {{ showPianoRollEditor ? '▲ Cerrar editor' : '▼ Abrir editor' }}
+        </button>
+      </div>
+      <div *ngIf="showPianoRollEditor">
+        <app-audio-piano-roll></app-audio-piano-roll>
+      </div>
+    </div>
+
     <!-- MODO KARAOKE -->
     <div class="studio-card karaoke-card" style="grid-column: 1 / -1">
       <h3>🎙 Modo Karaoke — Voz en vivo</h3>
