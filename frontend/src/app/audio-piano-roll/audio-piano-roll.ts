@@ -4,6 +4,7 @@ import {
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
+import { Sampler, start as toneStart, now as toneNow } from 'tone';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
@@ -19,6 +20,19 @@ const RESIZE_PX  = 10;   // px on right edge → resize handle
 
 const BLACK_SET  = new Set([1, 3, 6, 8, 10]);
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+// Salamander Grand Piano samples (Tone.js CDN)
+const SAMPLER_BASE = 'https://tonejs.github.io/audio/salamander/';
+const SAMPLER_URLS: Record<string, string> = {
+  A0:'A0.mp3',  C1:'C1.mp3',  'D#1':'Ds1.mp3', 'F#1':'Fs1.mp3',
+  A1:'A1.mp3',  C2:'C2.mp3',  'D#2':'Ds2.mp3', 'F#2':'Fs2.mp3',
+  A2:'A2.mp3',  C3:'C3.mp3',  'D#3':'Ds3.mp3', 'F#3':'Fs3.mp3',
+  A3:'A3.mp3',  C4:'C4.mp3',  'D#4':'Ds4.mp3', 'F#4':'Fs4.mp3',
+  A4:'A4.mp3',  C5:'C5.mp3',  'D#5':'Ds5.mp3', 'F#5':'Fs5.mp3',
+  A5:'A5.mp3',  C6:'C6.mp3',  'D#6':'Ds6.mp3', 'F#6':'Fs6.mp3',
+  A6:'A6.mp3',  C7:'C7.mp3',  'D#7':'Ds7.mp3', 'F#7':'Fs7.mp3',
+  A7:'A7.mp3',  C8:'C8.mp3',
+};
 
 export interface PianoNote {
   id:       string;
@@ -41,12 +55,14 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   @ViewChild('gridCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   // State
-  notes:      PianoNote[] = [];
-  savedRolls: SavedRoll[] = [];
-  saveName    = 'Mi composición';
-  bpm         = 120;
-  isPlaying   = false;
-  playheadBeat = 0;
+  notes:        PianoNote[] = [];
+  savedRolls:   SavedRoll[] = [];
+  saveName      = 'Mi composición';
+  bpm           = 120;
+  isPlaying     = false;
+  playheadBeat  = 0;
+  samplerReady  = false;
+  samplerStatus = 'Cargando piano…';
 
   // Grid dimensions (used in template)
   readonly KEY_W  = KEY_W;
@@ -65,20 +81,49 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   private notePitchAtDown  = 0;
 
   // Audio
-  private audioCtx: AudioContext | null = null;
-  private oscillators: OscillatorNode[] = [];
+  private sampler: Sampler | null = null;
   private playTimer: any = null;
   private phTimer:   any = null;
-  private ctxStart  = 0;
+  private phStart   = 0;
 
   constructor(private http: HttpClient, private auth: AuthService, private zone: NgZone) {
     for (let p = PITCH_MAX; p >= PITCH_MIN; p--) this.pitchRows.push(p);
   }
 
-  ngAfterViewInit() { this.drawGrid(); this.loadList(); }
-  ngOnDestroy()     { this.stop(); }
+  ngAfterViewInit() {
+    this.drawGrid();
+    this.loadList();
+    this.initSampler();
+  }
 
-  // ── Grid drawing ────────────────────────────────────
+  ngOnDestroy() {
+    this.stop();
+    this.sampler?.dispose();
+    this.sampler = null;
+  }
+
+  // ── Sampler init ─────────────────────────────────────
+
+  private initSampler() {
+    this.sampler = new Sampler({
+      urls: SAMPLER_URLS,
+      release: 1.5,
+      baseUrl: SAMPLER_BASE,
+      onload: () => {
+        this.zone.run(() => {
+          this.samplerReady  = true;
+          this.samplerStatus = '🎹 Piano listo';
+        });
+      },
+      onerror: () => {
+        this.zone.run(() => {
+          this.samplerStatus = '⚠ Error al cargar piano';
+        });
+      },
+    }).toDestination();
+  }
+
+  // ── Grid drawing ─────────────────────────────────────
 
   drawGrid() {
     const canvas = this.canvasRef?.nativeElement;
@@ -97,7 +142,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
         ctx.fillStyle = 'rgba(0,0,0,0.22)';
         ctx.fillRect(KEY_W, y, BEATS * BEAT_W, NOTE_H);
       }
-      if (sem === 0) { // C rows — subtle highlight
+      if (sem === 0) {
         ctx.fillStyle = 'rgba(56,189,248,0.07)';
         ctx.fillRect(KEY_W, y, BEATS * BEAT_W, NOTE_H);
       }
@@ -111,14 +156,13 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       ctx.beginPath(); ctx.moveTo(KEY_W, y); ctx.lineTo(this.gridW, y); ctx.stroke();
     }
 
-    // Vertical grid lines (beat / bar / sub-beat)
+    // Vertical grid lines
     for (let b = 0; b <= BEATS; b++) {
       const x     = KEY_W + b * BEAT_W;
       const isBar = b % 4 === 0;
       ctx.strokeStyle = isBar ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)';
       ctx.lineWidth   = isBar ? 1.5 : 0.5;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, this.gridH); ctx.stroke();
-      // half-beat
       if (b < BEATS) {
         const xh = x + BEAT_W / 2;
         ctx.strokeStyle = 'rgba(255,255,255,0.04)';
@@ -153,7 +197,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     }
   }
 
-  // ── Coordinate helpers ───────────────────────────────
+  // ── Coordinate helpers ────────────────────────────────
 
   private snap(v: number) { return Math.round(v / SNAP) * SNAP; }
 
@@ -175,14 +219,12 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   trackById(_: number, n: PianoNote) { return n.id; }
   private uid()                { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
-  // ── Mouse events ────────────────────────────────────
+  // ── Mouse events ─────────────────────────────────────
 
   onGridDown(e: MouseEvent, el: HTMLElement) {
     if (e.button !== 0) return;
-    // Ignore clicks on piano key column
     const r = el.getBoundingClientRect();
-    const xInEl = e.clientX - r.left + el.scrollLeft;
-    if (xInEl < KEY_W) return;
+    if (e.clientX - r.left + el.scrollLeft < KEY_W) return;
 
     const { beat, pitch } = this.coords(e, el);
     const note: PianoNote = { id: this.uid(), pitch, start: beat, duration: SNAP, velocity: 0.8 };
@@ -231,65 +273,46 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
 
   onMouseUp() { this.dragMode = null; this.dragNote = null; }
 
-  // ── Playback ─────────────────────────────────────────
+  // ── Playback (Tone.js Sampler) ────────────────────────
 
-  play() {
-    if (this.isPlaying || !this.notes.length) return;
+  async play() {
+    if (this.isPlaying || !this.notes.length || !this.samplerReady || !this.sampler) return;
+
+    await toneStart();
     this.stop();
-    const ctx   = new AudioContext();
-    this.audioCtx = ctx;
-    const bps   = this.bpm / 60;
-    const now   = ctx.currentTime + 0.05;
-    this.ctxStart = now;
-    this.isPlaying = true;
 
-    const master = ctx.createGain();
-    master.gain.value = 0.4;
-    master.connect(ctx.destination);
+    this.isPlaying = true;
+    const secPerBeat = 60 / this.bpm;
+    const now = toneNow() + 0.05;
+    this.phStart = now;
 
     let maxEnd = 0;
     for (const note of this.notes) {
-      const freq  = 440 * Math.pow(2, (note.pitch - 69) / 12);
-      const at    = now + note.start / bps;
-      const dur   = note.duration / bps;
-      const endAt = at + dur;
+      const name     = this.noteName(note.pitch);
+      const startAt  = now + note.start * secPerBeat;
+      const dur      = note.duration * secPerBeat;
+      const endAt    = startAt + dur;
       if (endAt > maxEnd) maxEnd = endAt;
-
-      const osc = ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.value = freq;
-
-      const env = ctx.createGain();
-      env.gain.setValueAtTime(0, at);
-      env.gain.linearRampToValueAtTime(note.velocity * 0.55, at + 0.01);
-      env.gain.setValueAtTime(note.velocity * 0.55, Math.max(at + 0.01, endAt - 0.04));
-      env.gain.linearRampToValueAtTime(0.0001, endAt);
-
-      osc.connect(env); env.connect(master);
-      osc.start(at); osc.stop(endAt + 0.05);
-      this.oscillators.push(osc);
+      this.sampler.triggerAttackRelease(name, dur, startAt, note.velocity);
     }
 
-    // Playhead ticker
     this.phTimer = setInterval(() => {
       this.zone.run(() => {
-        if (!this.audioCtx) return;
-        this.playheadBeat = (this.audioCtx.currentTime - this.ctxStart) * bps;
+        this.playheadBeat = (toneNow() - this.phStart) * (this.bpm / 60);
       });
     }, 40);
 
-    // Auto-stop
-    this.playTimer = setTimeout(() => this.zone.run(() => this.stop()), (maxEnd - now + 0.4) * 1000);
+    this.playTimer = setTimeout(() => {
+      this.zone.run(() => this.stop());
+    }, (maxEnd - toneNow() + 0.6) * 1000);
   }
 
   stop() {
-    this.isPlaying   = false;
+    this.isPlaying    = false;
     this.playheadBeat = 0;
     if (this.phTimer)   { clearInterval(this.phTimer);  this.phTimer   = null; }
     if (this.playTimer) { clearTimeout(this.playTimer); this.playTimer = null; }
-    for (const o of this.oscillators) { try { o.stop(); } catch {} }
-    this.oscillators = [];
-    if (this.audioCtx) { this.audioCtx.close(); this.audioCtx = null; }
+    try { this.sampler?.releaseAll(); } catch {}
   }
 
   // ── Save / Load ──────────────────────────────────────
@@ -331,18 +354,12 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     this.notes = [];
   }
 
-  // ── Piano key preview ────────────────────────────────
+  // ── Piano key preview (Tone.js) ──────────────────────
 
   previewPitch(pitch: number) {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const env = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = 440 * Math.pow(2, (pitch - 69) / 12);
-    env.gain.setValueAtTime(0.4, ctx.currentTime);
-    env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-    osc.connect(env); env.connect(ctx.destination);
-    osc.start(); osc.stop(ctx.currentTime + 0.5);
-    setTimeout(() => ctx.close(), 600);
+    if (!this.sampler || !this.samplerReady) return;
+    toneStart().then(() => {
+      this.sampler!.triggerAttackRelease(this.noteName(pitch), '8n');
+    });
   }
 }

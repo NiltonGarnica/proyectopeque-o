@@ -3,7 +3,8 @@
   <!-- ── Toolbar ─────────────────────────────────── -->
   <div class="pr-toolbar">
     <div class="pr-left">
-      <button class="btn-play"  (click)="play()"  [disabled]="isPlaying || notes.length === 0">▶ Play</button>
+      <button class="btn-play"  (click)="play()"  [disabled]="isPlaying || notes.length === 0 || !samplerReady">▶ Play</button>
+      <span class="sampler-status" [class.ready]="samplerReady">{{ samplerStatus }}</span>
       <button class="btn-stop"  (click)="stop()"  [disabled]="!isPlaying">⏹ Stop</button>
       <div class="bpm-box">
         <label>BPM</label>
