@@ -8,8 +8,14 @@
         <button class="btn-tool" [class.active]="toolMode==='draw'" (click)="setTool('draw')">✏ Dibujar</button>
         <button class="btn-tool" [class.active]="toolMode==='select'" (click)="setTool('select')">⬚ Seleccionar</button>
       </div>
-      <button class="btn-play" (click)="play()" [disabled]="isPlaying || notes.length === 0 || !samplerReady">▶ Play</button>
-      <span class="sampler-status" [class.ready]="samplerReady">{{ samplerStatus }}</span>
+      <!-- Instrument selector -->
+      <select class="inst-select" [(ngModel)]="currentInstrumentType" (change)="onInstrumentChange()" [disabled]="isPlaying">
+        <option value="piano">🎹 Piano</option>
+        <option value="guitar">🎸 Guitarra</option>
+        <option value="bass">🎸 Bajo</option>
+      </select>
+      <button class="btn-play" (click)="play()" [disabled]="isPlaying || notes.length === 0 || !activeInstrumentReady">▶ Play</button>
+      <span class="sampler-status" [class.ready]="activeInstrumentReady">{{ activeInstrumentStatus }}</span>
       <button class="btn-stop" (click)="stop()" [disabled]="!isPlaying">⏹ Stop</button>
       <div class="bpm-box">
         <label>BPM</label>

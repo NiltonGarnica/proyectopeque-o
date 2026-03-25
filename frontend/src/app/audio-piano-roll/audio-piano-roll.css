@@ -25,6 +25,23 @@
   flex-wrap: wrap;
 }
 
+/* ── Instrument selector ─────────────────── */
+.inst-select {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(56,189,248,0.3);
+  border-bottom: 2px solid #38bdf8;
+  border-radius: 7px;
+  color: #e2e8f0;
+  font-size: 0.85em;
+  padding: 5px 8px;
+  cursor: pointer;
+  outline: none;
+  margin: 0;
+}
+.inst-select:focus { border-color: #22d3ee; box-shadow: 0 0 6px rgba(34,211,238,0.3); }
+.inst-select:disabled { opacity: 0.5; cursor: default; }
+.inst-select option { background: #0f172a; color: #e2e8f0; }
+
 /* ── Tool buttons ────────────────────────── */
 .tool-buttons {
   display: flex;

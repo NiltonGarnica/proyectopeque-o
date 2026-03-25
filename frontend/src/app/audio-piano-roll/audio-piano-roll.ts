@@ -74,6 +74,13 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   samplerReady  = false;
   samplerStatus = 'Cargando piano…';
 
+  // ── Instrument selection
+  currentInstrumentType: 'piano' | 'guitar' | 'bass' = 'piano';
+  guitarReady  = false;
+  guitarStatus = 'No cargado';
+  bassReady    = false;
+  bassStatus   = 'No cargado';
+
   // ── Grid dims
   readonly KEY_W  = KEY_W;
   readonly NOTE_H = NOTE_H;
@@ -97,6 +104,24 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     return [...this.activeKeys].filter(p => p >= PITCH_MIN && p <= PITCH_MAX);
   }
 
+  get activeInstrumentReady(): boolean {
+    if (this.currentInstrumentType === 'guitar') return this.guitarReady;
+    if (this.currentInstrumentType === 'bass')   return this.bassReady;
+    return this.samplerReady;
+  }
+
+  get activeInstrumentStatus(): string {
+    if (this.currentInstrumentType === 'guitar') return this.guitarStatus;
+    if (this.currentInstrumentType === 'bass')   return this.bassStatus;
+    return this.samplerStatus;
+  }
+
+  private getActiveInstrument(): Sampler | null {
+    if (this.currentInstrumentType === 'guitar') return this.guitar;
+    if (this.currentInstrumentType === 'bass')   return this.bass;
+    return this.sampler;
+  }
+
   // ── Grid drag (single note)
   private dragMode: 'move' | 'resize' | 'move-sel' | null = null;
   private dragNote: PianoNote | null = null;
@@ -113,6 +138,8 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
 
   // ── Audio
   private sampler:   Sampler | null = null;
+  private guitar:    Sampler | null = null;
+  private bass:      Sampler | null = null;
   private playTimer: any = null;
   private phTimer:   any = null;
   private phStart    = 0;
@@ -136,8 +163,9 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     this.stop();
-    this.sampler?.dispose();
-    this.sampler = null;
+    this.sampler?.dispose(); this.sampler = null;
+    this.guitar?.dispose();  this.guitar  = null;
+    this.bass?.dispose();    this.bass    = null;
     document.removeEventListener('keydown', this.kbDownFn);
     document.removeEventListener('keyup',   this.kbUpFn);
     document.removeEventListener('mouseup', this.globalUpFn);
@@ -160,6 +188,49 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     }).toDestination();
   }
 
+  private initGuitar() {
+    this.guitarStatus = 'Cargando guitarra…';
+    this.guitar = new Sampler({
+      urls: {
+        'A2': 'A2.mp3', 'A3': 'A3.mp3', 'A4': 'A4.mp3',
+        'B2': 'B2.mp3', 'B3': 'B3.mp3',
+        'C3': 'C3.mp3', 'C4': 'C4.mp3', 'C5': 'C5.mp3',
+        'D3': 'D3.mp3', 'D4': 'D4.mp3', 'D5': 'D5.mp3',
+        'E2': 'E2.mp3', 'E3': 'E3.mp3', 'E4': 'E4.mp3',
+        'F3': 'F3.mp3', 'F4': 'F4.mp3',
+        'G2': 'G2.mp3', 'G3': 'G3.mp3', 'G4': 'G4.mp3',
+      },
+      release: 1.2,
+      baseUrl: 'https://nbrosowsky.github.io/tonejs-instruments/samples/guitar-acoustic/',
+      onload:  () => this.zone.run(() => { this.guitarReady = true; this.guitarStatus = '🎸 Guitarra lista'; }),
+      onerror: () => this.zone.run(() => { this.guitarStatus = '⚠ Error guitarra'; }),
+    }).toDestination();
+  }
+
+  private initBass() {
+    this.bassStatus = 'Cargando bajo…';
+    this.bass = new Sampler({
+      urls: {
+        'A1': 'A1.mp3', 'A2': 'A2.mp3', 'A3': 'A3.mp3',
+        'B1': 'B1.mp3', 'B2': 'B2.mp3',
+        'C1': 'C1.mp3', 'C2': 'C2.mp3', 'C3': 'C3.mp3', 'C4': 'C4.mp3',
+        'D1': 'D1.mp3', 'D2': 'D2.mp3', 'D3': 'D3.mp3', 'D4': 'D4.mp3',
+        'E1': 'E1.mp3', 'E2': 'E2.mp3', 'E3': 'E3.mp3',
+        'F1': 'F1.mp3', 'F2': 'F2.mp3',
+        'G1': 'G1.mp3', 'G2': 'G2.mp3',
+      },
+      release: 1.5,
+      baseUrl: 'https://nbrosowsky.github.io/tonejs-instruments/samples/bass-electric/',
+      onload:  () => this.zone.run(() => { this.bassReady = true; this.bassStatus = '🎸 Bajo listo'; }),
+      onerror: () => this.zone.run(() => { this.bassStatus = '⚠ Error bajo'; }),
+    }).toDestination();
+  }
+
+  onInstrumentChange() {
+    if (this.currentInstrumentType === 'guitar' && !this.guitar) this.initGuitar();
+    if (this.currentInstrumentType === 'bass'   && !this.bass)   this.initBass();
+  }
+
   private midiToName(pitch: number) {
     return NOTE_NAMES[pitch % 12] + (Math.floor(pitch / 12) - 1);
   }
@@ -168,15 +239,17 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     if (this.activeKeys.has(pitch)) return;
     const next = new Set(this.activeKeys); next.add(pitch);
     this.activeKeys = next;
-    if (!this.sampler || !this.samplerReady) return;
-    toneStart().then(() => { this.sampler!.triggerAttack(this.midiToName(pitch), toneNow(), 0.8); });
+    const inst = this.getActiveInstrument();
+    if (!inst || !this.activeInstrumentReady) return;
+    toneStart().then(() => { inst.triggerAttack(this.midiToName(pitch), toneNow(), 0.8); });
   }
 
   private releaseKey(pitch: number) {
     const next = new Set(this.activeKeys); next.delete(pitch);
     this.activeKeys = next;
-    if (!this.sampler || !this.samplerReady) return;
-    try { this.sampler.triggerRelease(this.midiToName(pitch), toneNow()); } catch {}
+    const inst = this.getActiveInstrument();
+    if (!inst || !this.activeInstrumentReady) return;
+    try { inst.triggerRelease(this.midiToName(pitch), toneNow()); } catch {}
   }
 
   // ── Vertical piano overlay ────────────────────────────
@@ -586,7 +659,8 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   // ── Playback ─────────────────────────────────────────
 
   async play() {
-    if (this.isPlaying || !this.notes.length || !this.samplerReady || !this.sampler) return;
+    const inst = this.getActiveInstrument();
+    if (this.isPlaying || !this.notes.length || !inst || !this.activeInstrumentReady) return;
     await toneStart();
     this.stop();
 
@@ -602,7 +676,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       const dur     = note.duration * spb;
       const endAt   = startAt + dur;
       if (endAt > maxEnd) maxEnd = endAt;
-      this.sampler.triggerAttackRelease(name, dur, startAt, note.velocity);
+      inst.triggerAttackRelease(name, dur, startAt, note.velocity);
     }
 
     this.phTimer  = setInterval(() => {
@@ -617,6 +691,8 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     if (this.phTimer)   { clearInterval(this.phTimer);  this.phTimer   = null; }
     if (this.playTimer) { clearTimeout(this.playTimer); this.playTimer = null; }
     try { this.sampler?.releaseAll(); } catch {}
+    try { this.guitar?.releaseAll();  } catch {}
+    try { this.bass?.releaseAll();    } catch {}
   }
 
   // ── Save / Load ──────────────────────────────────────
