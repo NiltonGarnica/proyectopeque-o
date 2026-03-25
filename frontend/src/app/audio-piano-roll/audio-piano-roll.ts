@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
-import { Sampler, start as toneStart, now as toneNow } from 'tone';
+import { Sampler, Reverb, Distortion, Filter, getDestination, start as toneStart, now as toneNow } from 'tone';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
@@ -146,6 +146,13 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   private guitar:          Sampler | null = null;
   private guitarElectric:  Sampler | null = null;
   private bass:            Sampler | null = null;
+
+  // ── Effects per instrument
+  private pianoReverb:       Reverb     | null = null;
+  private guitarReverb:      Reverb     | null = null;
+  private guitarElDist:      Distortion | null = null;
+  private guitarElReverb:    Reverb     | null = null;
+  private bassFilter:        Filter     | null = null;
   private playTimer: any = null;
   private phTimer:   any = null;
   private phStart    = 0;
@@ -173,6 +180,11 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     this.guitar?.dispose();         this.guitar         = null;
     this.guitarElectric?.dispose(); this.guitarElectric = null;
     this.bass?.dispose();           this.bass           = null;
+    this.pianoReverb?.dispose();    this.pianoReverb    = null;
+    this.guitarReverb?.dispose();   this.guitarReverb   = null;
+    this.guitarElDist?.dispose();   this.guitarElDist   = null;
+    this.guitarElReverb?.dispose(); this.guitarElReverb = null;
+    this.bassFilter?.dispose();     this.bassFilter     = null;
     document.removeEventListener('keydown', this.kbDownFn);
     document.removeEventListener('keyup',   this.kbUpFn);
     document.removeEventListener('mouseup', this.globalUpFn);
@@ -188,15 +200,20 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   // ── Sampler ───────────────────────────────────────────
 
   private initSampler() {
+    // Piano → Reverb ligera
+    this.pianoReverb = new Reverb({ decay: 2.0, wet: 0.2 });
     this.sampler = new Sampler({
       urls: SAMPLER_URLS, release: 1.5, baseUrl: SAMPLER_BASE,
       onload:  () => this.zone.run(() => { this.samplerReady = true; this.samplerStatus = '🎹 Piano listo'; }),
       onerror: () => this.zone.run(() => { this.samplerStatus = '⚠ Error al cargar'; }),
-    }).toDestination();
+    });
+    this.sampler.chain(this.pianoReverb, getDestination());
   }
 
   private initGuitar() {
+    // Guitarra acústica → Reverb media
     this.guitarStatus = 'Cargando guitarra…';
+    this.guitarReverb = new Reverb({ decay: 1.8, wet: 0.35 });
     this.guitar = new Sampler({
       urls: {
         'A2': 'A2.mp3', 'A3': 'A3.mp3', 'A4': 'A4.mp3',
@@ -211,11 +228,15 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       baseUrl: 'https://nbrosowsky.github.io/tonejs-instruments/samples/guitar-acoustic/',
       onload:  () => this.zone.run(() => { this.guitarReady = true; this.guitarStatus = '🎸 Guitarra lista'; }),
       onerror: () => this.zone.run(() => { this.guitarStatus = '⚠ Error guitarra'; }),
-    }).toDestination();
+    });
+    this.guitar.chain(this.guitarReverb, getDestination());
   }
 
   private initGuitarElectric() {
+    // Guitarra eléctrica → Distortion + Reverb
     this.guitarElectricStatus = 'Cargando guitarra eléctrica…';
+    this.guitarElDist   = new Distortion({ distortion: 0.45, wet: 0.6 });
+    this.guitarElReverb = new Reverb({ decay: 1.0, wet: 0.18 });
     this.guitarElectric = new Sampler({
       urls: {
         'A2':  'A2.mp3',  'A3':  'A3.mp3',  'A4':  'A4.mp3',  'A5':  'A5.mp3',
@@ -229,11 +250,14 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       baseUrl: 'https://nbrosowsky.github.io/tonejs-instruments/samples/guitar-electric/',
       onload:  () => this.zone.run(() => { this.guitarElectricReady = true; this.guitarElectricStatus = '🎸 Guitarra eléctrica lista'; }),
       onerror: () => this.zone.run(() => { this.guitarElectricStatus = '⚠ Error guitarra eléctrica'; }),
-    }).toDestination();
+    });
+    this.guitarElectric.chain(this.guitarElDist, this.guitarElReverb, getDestination());
   }
 
   private initBass() {
+    // Bajo → Filtro lowpass (calidez)
     this.bassStatus = 'Cargando bajo…';
+    this.bassFilter = new Filter({ frequency: 500, type: 'lowpass' });
     this.bass = new Sampler({
       urls: {
         'A#1': 'As1.mp3', 'A#2': 'As2.mp3', 'A#3': 'As3.mp3', 'A#4': 'As4.mp3',
@@ -245,7 +269,8 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       baseUrl: 'https://nbrosowsky.github.io/tonejs-instruments/samples/bass-electric/',
       onload:  () => this.zone.run(() => { this.bassReady = true; this.bassStatus = '🎸 Bajo listo'; }),
       onerror: () => this.zone.run(() => { this.bassStatus = '⚠ Error bajo'; }),
-    }).toDestination();
+    });
+    this.bass.chain(this.bassFilter, getDestination());
   }
 
   onInstrumentChange() {
