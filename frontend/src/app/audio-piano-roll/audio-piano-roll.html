@@ -68,6 +68,51 @@
     </div>
   </div>
 
+  <!-- ── Piano keyboard ─────────────────────────── -->
+  <div class="pr-keyboard-wrap">
+
+    <div class="pr-kb-header">
+      <div class="pr-kb-hints">
+        <span class="pr-kb-legend">
+          Teclado:
+          <kbd>Z</kbd>–<kbd>M</kbd> &amp; <kbd>Q</kbd>–<kbd>U</kbd>
+          &nbsp;·&nbsp; Octava:
+          <kbd>←</kbd><kbd>→</kbd>
+        </span>
+      </div>
+      <div class="pr-kb-octave">
+        <button class="btn-oct" (click)="shiftOctave(-1)" [disabled]="kbOctave <= 1">◀</button>
+        <span class="pr-oct-label">Octava {{ kbOctave }}</span>
+        <button class="btn-oct" (click)="shiftOctave(1)"  [disabled]="kbOctave >= 7">▶</button>
+      </div>
+    </div>
+
+    <div class="pr-keys-scroll" #keysScroll (selectstart)="$event.preventDefault()">
+      <div class="pr-keys-inner"
+           [style.width.px]="pianoWidth"
+           [style.height.px]="WHITE_KEY_H">
+
+        <div *ngFor="let key of pianoKeys; trackBy: trackByPitch"
+             class="pr-key"
+             [class.pr-key-black]="key.isBlack"
+             [class.pr-key-active]="activeKeys.has(key.pitch)"
+             [style.left.px]="key.x"
+             [style.width.px]="key.isBlack ? BLACK_KEY_W : WHITE_KEY_W"
+             [style.height.px]="key.isBlack ? BLACK_KEY_H : WHITE_KEY_H"
+             (mousedown)="onPianoMouseDown(key.pitch, $event)"
+             (mouseup)="onPianoMouseUp(key.pitch)"
+             (mouseenter)="onPianoMouseEnter(key.pitch)">
+
+          <!-- C note label (only on white C keys) -->
+          <span class="pr-key-name" *ngIf="key.isC">{{ key.name }}</span>
+          <!-- Keyboard shortcut label -->
+          <span class="pr-key-kb"   *ngIf="key.kbKey">{{ key.kbKey }}</span>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Saved projects ────────────────────────── -->
   <div class="pr-saved" *ngIf="savedRolls.length > 0">
     <h4>📂 Proyectos guardados</h4>

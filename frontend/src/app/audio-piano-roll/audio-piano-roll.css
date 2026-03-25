@@ -217,6 +217,147 @@
   pointer-events: none;
 }
 
+/* ── Piano keyboard ──────────────────── */
+.pr-keyboard-wrap {
+  margin-top: 16px;
+}
+
+.pr-kb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pr-kb-hints { display: flex; align-items: center; gap: 6px; }
+
+.pr-kb-legend {
+  font-size: 0.75em;
+  color: #7dd3fc;
+  opacity: 0.9;
+}
+
+.pr-kb-legend kbd {
+  display: inline-block;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.85em;
+  font-family: monospace;
+  color: #e2e8f0;
+}
+
+.pr-kb-octave {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pr-oct-label {
+  font-size: 0.82em;
+  color: #bae6fd;
+  min-width: 72px;
+  text-align: center;
+}
+
+.btn-oct {
+  background: rgba(56,189,248,0.15);
+  border: 1px solid rgba(56,189,248,0.3);
+  color: #7dd3fc;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  margin-top: 0;
+  font-size: 0.85em;
+}
+.btn-oct:hover:not(:disabled) { background: rgba(56,189,248,0.3); }
+.btn-oct:disabled { opacity: 0.35; cursor: default; }
+
+/* Scroll container */
+.pr-keys-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 10px;
+  border: 1px solid rgba(56,189,248,0.2);
+  background: rgba(5,15,30,0.55);
+  user-select: none;
+}
+.pr-keys-scroll::-webkit-scrollbar { height: 6px; }
+.pr-keys-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+.pr-keys-scroll::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.4); border-radius: 3px; }
+
+/* Keys inner container */
+.pr-keys-inner {
+  position: relative;
+}
+
+/* White key */
+.pr-key {
+  position: absolute;
+  top: 0;
+  background: linear-gradient(180deg, #dceeff 0%, #ffffff 60%, #f0f8ff 100%);
+  border: 1px solid #5a7a8a;
+  border-top: none;
+  border-radius: 0 0 5px 5px;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 5px;
+  z-index: 1;
+  transition: background 0.06s;
+}
+.pr-key:hover:not(.pr-key-black) {
+  background: linear-gradient(180deg, #b8e0ff 0%, #e0f4ff 60%, #f0faff 100%);
+}
+.pr-key:not(.pr-key-black).pr-key-active {
+  background: linear-gradient(180deg, #22d3ee 0%, #0ea5e9 50%, #38bdf8 100%);
+  box-shadow: inset 0 -4px 8px rgba(0,0,0,0.2), 0 0 12px rgba(34,211,238,0.6);
+}
+
+/* Black key */
+.pr-key-black {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 70%, #1a2535 100%);
+  border: 1px solid #000;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  z-index: 2;
+  padding-bottom: 4px;
+}
+.pr-key-black:hover {
+  background: linear-gradient(180deg, #334155 0%, #1e293b 70%, #263045 100%);
+}
+.pr-key-black.pr-key-active {
+  background: linear-gradient(180deg, #0ea5e9 0%, #0369a1 70%, #0284c7 100%);
+  box-shadow: 0 0 10px rgba(14,165,233,0.7);
+}
+
+/* Key labels */
+.pr-key-name {
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #1e3a5f;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.pr-key-kb {
+  font-size: 7px;
+  font-weight: 700;
+  pointer-events: none;
+  line-height: 1;
+  margin-top: 2px;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+.pr-key:not(.pr-key-black) .pr-key-kb { color: #0369a1; background: rgba(3,105,161,0.1); }
+.pr-key-black .pr-key-kb { color: #bae6fd; }
+
 /* ── Saved list ──────────────────────── */
 .pr-saved {
   margin-top: 16px;
