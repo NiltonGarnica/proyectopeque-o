@@ -15,6 +15,18 @@
         <option value="guitar-electric">⚡ Guitarra eléctrica</option>
         <option value="bass">🎸 Bajo</option>
       </select>
+      <!-- Effect preset buttons for active instrument -->
+      <div class="fx-preset-group">
+        <span class="fx-label">FX:</span>
+        <button
+          *ngFor="let name of EFFECT_NAMES[currentInstrumentType]; let i = index"
+          class="btn-fx-preset"
+          [class.active]="effectIdx[currentInstrumentType] === i"
+          (click)="setEffect(i)"
+          [disabled]="isPlaying">
+          {{ name }}
+        </button>
+      </div>
       <button class="btn-play" (click)="play()" [disabled]="isPlaying || notes.length === 0 || !activeInstrumentReady">▶ Play</button>
       <span class="sampler-status" [class.ready]="activeInstrumentReady">{{ activeInstrumentStatus }}</span>
       <button class="btn-stop" (click)="stop()" [disabled]="!isPlaying">⏹ Stop</button>

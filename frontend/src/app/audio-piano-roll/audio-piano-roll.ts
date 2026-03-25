@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
-import { Sampler, Reverb, Distortion, Filter, getDestination, start as toneStart, now as toneNow } from 'tone';
+import { Sampler, Reverb, Distortion, Filter, Chorus, Tremolo, FeedbackDelay, Phaser, Compressor, getDestination, start as toneStart, now as toneNow } from 'tone';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
@@ -147,12 +147,22 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   private guitarElectric:  Sampler | null = null;
   private bass:            Sampler | null = null;
 
-  // ── Effects per instrument
-  private pianoReverb:       Reverb     | null = null;
-  private guitarReverb:      Reverb     | null = null;
-  private guitarElDist:      Distortion | null = null;
-  private guitarElReverb:    Reverb     | null = null;
-  private bassFilter:        Filter     | null = null;
+  // ── Effect presets (UI names per instrument)
+  readonly EFFECT_NAMES: Record<string, string[]> = {
+    'piano':           ['Sala',       'Coro',      'Trémolo'],
+    'guitar':          ['Sala',       'Eco',       'Coro'],
+    'guitar-electric': ['Distorsión', 'Metal',     'Clean'],
+    'bass':            ['Cálido',     'Compresor', 'Sub'],
+  };
+
+  // ── Selected effect index per instrument
+  effectIdx: Record<string, number> = {
+    'piano': 0, 'guitar': 0, 'guitar-electric': 0, 'bass': 0,
+  };
+
+  // ── Active effect nodes per instrument (for disposal)
+  private effectChains = new Map<string, any[]>();
+
   private playTimer: any = null;
   private phTimer:   any = null;
   private phStart    = 0;
@@ -180,11 +190,8 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     this.guitar?.dispose();         this.guitar         = null;
     this.guitarElectric?.dispose(); this.guitarElectric = null;
     this.bass?.dispose();           this.bass           = null;
-    this.pianoReverb?.dispose();    this.pianoReverb    = null;
-    this.guitarReverb?.dispose();   this.guitarReverb   = null;
-    this.guitarElDist?.dispose();   this.guitarElDist   = null;
-    this.guitarElReverb?.dispose(); this.guitarElReverb = null;
-    this.bassFilter?.dispose();     this.bassFilter     = null;
+    this.effectChains.forEach(chain => chain.forEach(fx => { try { fx.dispose(); } catch {} }));
+    this.effectChains.clear();
     document.removeEventListener('keydown', this.kbDownFn);
     document.removeEventListener('keyup',   this.kbUpFn);
     document.removeEventListener('mouseup', this.globalUpFn);
@@ -200,20 +207,16 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   // ── Sampler ───────────────────────────────────────────
 
   private initSampler() {
-    // Piano → Reverb ligera
-    this.pianoReverb = new Reverb({ decay: 2.0, wet: 0.2 });
     this.sampler = new Sampler({
       urls: SAMPLER_URLS, release: 1.5, baseUrl: SAMPLER_BASE,
       onload:  () => this.zone.run(() => { this.samplerReady = true; this.samplerStatus = '🎹 Piano listo'; }),
       onerror: () => this.zone.run(() => { this.samplerStatus = '⚠ Error al cargar'; }),
     });
-    this.sampler.chain(this.pianoReverb, getDestination());
+    this.applyEffects('piano', this.effectIdx['piano']);
   }
 
   private initGuitar() {
-    // Guitarra acústica → Reverb media
     this.guitarStatus = 'Cargando guitarra…';
-    this.guitarReverb = new Reverb({ decay: 1.8, wet: 0.35 });
     this.guitar = new Sampler({
       urls: {
         'A2': 'A2.mp3', 'A3': 'A3.mp3', 'A4': 'A4.mp3',
@@ -229,14 +232,11 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       onload:  () => this.zone.run(() => { this.guitarReady = true; this.guitarStatus = '🎸 Guitarra lista'; }),
       onerror: () => this.zone.run(() => { this.guitarStatus = '⚠ Error guitarra'; }),
     });
-    this.guitar.chain(this.guitarReverb, getDestination());
+    this.applyEffects('guitar', this.effectIdx['guitar']);
   }
 
   private initGuitarElectric() {
-    // Guitarra eléctrica → Distortion + Reverb
     this.guitarElectricStatus = 'Cargando guitarra eléctrica…';
-    this.guitarElDist   = new Distortion({ distortion: 0.45, wet: 0.6 });
-    this.guitarElReverb = new Reverb({ decay: 1.0, wet: 0.18 });
     this.guitarElectric = new Sampler({
       urls: {
         'A2':  'A2.mp3',  'A3':  'A3.mp3',  'A4':  'A4.mp3',  'A5':  'A5.mp3',
@@ -251,13 +251,11 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       onload:  () => this.zone.run(() => { this.guitarElectricReady = true; this.guitarElectricStatus = '🎸 Guitarra eléctrica lista'; }),
       onerror: () => this.zone.run(() => { this.guitarElectricStatus = '⚠ Error guitarra eléctrica'; }),
     });
-    this.guitarElectric.chain(this.guitarElDist, this.guitarElReverb, getDestination());
+    this.applyEffects('guitar-electric', this.effectIdx['guitar-electric']);
   }
 
   private initBass() {
-    // Bajo → Filtro lowpass (calidez)
     this.bassStatus = 'Cargando bajo…';
-    this.bassFilter = new Filter({ frequency: 500, type: 'lowpass' });
     this.bass = new Sampler({
       urls: {
         'A#1': 'As1.mp3', 'A#2': 'As2.mp3', 'A#3': 'As3.mp3', 'A#4': 'As4.mp3',
@@ -270,13 +268,124 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       onload:  () => this.zone.run(() => { this.bassReady = true; this.bassStatus = '🎸 Bajo listo'; }),
       onerror: () => this.zone.run(() => { this.bassStatus = '⚠ Error bajo'; }),
     });
-    this.bass.chain(this.bassFilter, getDestination());
+    this.applyEffects('bass', this.effectIdx['bass']);
   }
 
   onInstrumentChange() {
     if (this.currentInstrumentType === 'guitar'          && !this.guitar)         this.initGuitar();
     if (this.currentInstrumentType === 'guitar-electric' && !this.guitarElectric) this.initGuitarElectric();
     if (this.currentInstrumentType === 'bass'            && !this.bass)           this.initBass();
+  }
+
+  // ── Effect selection ──────────────────────────────────
+
+  setEffect(idx: number) {
+    this.effectIdx[this.currentInstrumentType] = idx;
+    this.applyEffects(this.currentInstrumentType, idx);
+  }
+
+  private getSamplerByType(type: string): Sampler | null {
+    if (type === 'piano')          return this.sampler;
+    if (type === 'guitar')         return this.guitar;
+    if (type === 'guitar-electric') return this.guitarElectric;
+    if (type === 'bass')           return this.bass;
+    return null;
+  }
+
+  private applyEffects(type: string, idx: number) {
+    const sampler = this.getSamplerByType(type);
+    if (!sampler) return;
+    // Dispose old effect nodes for this instrument
+    (this.effectChains.get(type) || []).forEach(fx => { try { fx.dispose(); } catch {} });
+    // Build new chain
+    const fxNodes = this.createFxChain(type, idx);
+    this.effectChains.set(type, fxNodes);
+    // Reconnect: sampler → fx1 → fx2 → … → destination
+    sampler.disconnect();
+    const dest = getDestination();
+    if (!fxNodes.length) {
+      sampler.connect(dest);
+    } else {
+      sampler.connect(fxNodes[0]);
+      for (let i = 0; i < fxNodes.length - 1; i++) {
+        fxNodes[i].connect(fxNodes[i + 1]);
+      }
+      fxNodes[fxNodes.length - 1].connect(dest);
+    }
+  }
+
+  private createFxChain(type: string, idx: number): any[] {
+    if (type === 'piano') {
+      if (idx === 0) {
+        // Sala — Reverb ligera
+        return [new Reverb({ decay: 2.0, wet: 0.2 })];
+      }
+      if (idx === 1) {
+        // Coro — Chorus + Reverb suave
+        const ch = new Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7 });
+        ch.wet.value = 0.8; ch.start();
+        return [ch, new Reverb({ decay: 1.0, wet: 0.15 })];
+      }
+      if (idx === 2) {
+        // Trémolo — Tremolo + Reverb
+        const tr = new Tremolo({ frequency: 5, depth: 0.4 });
+        tr.wet.value = 1; tr.start();
+        return [tr, new Reverb({ decay: 1.5, wet: 0.2 })];
+      }
+    }
+    if (type === 'guitar') {
+      if (idx === 0) {
+        // Sala — Reverb media
+        return [new Reverb({ decay: 1.8, wet: 0.35 })];
+      }
+      if (idx === 1) {
+        // Eco — Delay + Reverb
+        const delay = new FeedbackDelay({ delayTime: 0.25, feedback: 0.4 });
+        delay.wet.value = 0.4;
+        return [delay, new Reverb({ decay: 1.0, wet: 0.2 })];
+      }
+      if (idx === 2) {
+        // Coro — Chorus + Reverb
+        const ch = new Chorus({ frequency: 2, delayTime: 3, depth: 0.5 });
+        ch.wet.value = 0.9; ch.start();
+        return [ch, new Reverb({ decay: 1.5, wet: 0.25 })];
+      }
+    }
+    if (type === 'guitar-electric') {
+      if (idx === 0) {
+        // Distorsión clásica
+        return [new Distortion({ distortion: 0.45, wet: 0.6 }), new Reverb({ decay: 1.0, wet: 0.18 })];
+      }
+      if (idx === 1) {
+        // Metal — Distorsión alta + Phaser
+        const ph = new Phaser({ frequency: 0.5, octaves: 3, baseFrequency: 400 });
+        ph.wet.value = 0.6;
+        return [new Distortion({ distortion: 0.8, wet: 0.85 }), ph, new Reverb({ decay: 0.8, wet: 0.15 })];
+      }
+      if (idx === 2) {
+        // Clean — Chorus + Reverb suave
+        const ch = new Chorus({ frequency: 3, delayTime: 2.5, depth: 0.6 });
+        ch.wet.value = 0.9; ch.start();
+        return [ch, new Reverb({ decay: 1.2, wet: 0.2 })];
+      }
+    }
+    if (type === 'bass') {
+      if (idx === 0) {
+        // Cálido — Filtro lowpass 500 Hz
+        return [new Filter({ frequency: 500, type: 'lowpass' })];
+      }
+      if (idx === 1) {
+        // Compresor — Compressor + Filter
+        return [new Compressor({ threshold: -20, ratio: 4 }), new Filter({ frequency: 600, type: 'lowpass' })];
+      }
+      if (idx === 2) {
+        // Sub — Deep lowpass + Chorus lento
+        const ch = new Chorus({ frequency: 0.5, delayTime: 4, depth: 0.3 });
+        ch.wet.value = 0.5; ch.start();
+        return [new Filter({ frequency: 220, type: 'lowpass' }), ch];
+      }
+    }
+    return [new Reverb({ decay: 1.5, wet: 0.2 })];
   }
 
   private midiToName(pitch: number) {

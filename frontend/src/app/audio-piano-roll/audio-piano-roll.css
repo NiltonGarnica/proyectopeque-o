@@ -42,6 +42,47 @@
 .inst-select:disabled { opacity: 0.5; cursor: default; }
 .inst-select option { background: #0f172a; color: #e2e8f0; }
 
+/* ── FX preset buttons ───────────────────── */
+.fx-preset-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 3px 7px;
+}
+
+.fx-label {
+  font-size: 0.72em;
+  color: #7dd3fc;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+  margin-right: 2px;
+}
+
+.btn-fx-preset {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #94a3b8;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.78em;
+  font-weight: 600;
+  margin: 0;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.btn-fx-preset:hover:not(:disabled) { background: rgba(255,255,255,0.14); color: #e2e8f0; }
+.btn-fx-preset.active {
+  background: linear-gradient(135deg, rgba(139,92,246,0.6), rgba(99,102,241,0.5));
+  border-color: rgba(139,92,246,0.6);
+  color: #e9d5ff;
+  box-shadow: 0 0 8px rgba(139,92,246,0.4);
+}
+.btn-fx-preset:disabled { opacity: 0.4; cursor: default; }
+
 /* ── Tool buttons ────────────────────────── */
 .tool-buttons {
   display: flex;
