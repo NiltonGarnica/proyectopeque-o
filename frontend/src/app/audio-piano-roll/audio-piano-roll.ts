@@ -368,6 +368,8 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   onGridDown(e: MouseEvent, el: HTMLElement) {
     if (e.button !== 0) return;
     const r = el.getBoundingClientRect();
+    // Ignore clicks on scrollbar areas (12px scrollbar width + 2px margin)
+    if (e.clientX > r.right - 14 || e.clientY > r.bottom - 14) return;
     if (e.clientX - r.left + el.scrollLeft < KEY_W) return;
 
     const { beat, pitch } = this.coords(e, el);
