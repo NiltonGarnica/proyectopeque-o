@@ -8,7 +8,7 @@ import { Sampler, start as toneStart, now as toneNow } from 'tone';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
-// ── Roll grid constants ───────────────────────────────
+// ── Grid constants ───────────────────────────────────
 const PITCH_MIN  = 36;   // C2
 const PITCH_MAX  = 83;   // B5
 const BEATS      = 32;
@@ -18,19 +18,6 @@ const KEY_W      = 52;
 const SNAP       = 0.25;
 const RESIZE_PX  = 10;
 
-// ── Piano keyboard constants ──────────────────────────
-const PK_MIN  = 21;        // A0 — full 88-key piano
-const PK_MAX  = 108;       // C8
-const WHITE_W = 28;        // px per white key
-const WHITE_H = 110;       // px height of white key
-const BLACK_W = 17;        // px per black key
-const BLACK_H = 68;        // px height of black key
-const OCT_W   = 7 * WHITE_W; // 196px per octave
-
-// Left-edge x of each semitone within one octave (WHITE_W=28, BLACK_W=17)
-const SEM_X = [0, 17, 28, 45, 56, 84, 100, 112, 128, 140, 156, 168];
-//             C  C#   D  D#   E   F   F#    G   G#    A   A#    B
-
 // ── Shared ────────────────────────────────────────────
 const BLACK_SET  = new Set([1, 3, 6, 8, 10]);
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -39,10 +26,6 @@ const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const KB_MAP: Record<string, number> = {
   'z':0, 's':1, 'x':2, 'd':3, 'c':4, 'v':5, 'g':6, 'b':7, 'h':8, 'n':9, 'j':10, 'm':11,
   'q':12,'2':13,'w':14,'3':15,'e':16,'r':17,'5':18,'t':19,'6':20,'y':21,'7':22,'u':23,
-};
-const KB_LABELS: Record<number, string> = {
-  0:'Z',1:'S',2:'X',3:'D',4:'C',5:'V',6:'G',7:'B',8:'H',9:'N',10:'J',11:'M',
-  12:'Q',13:'2',14:'W',15:'3',16:'E',17:'R',18:'5',19:'T',20:'6',21:'Y',22:'7',23:'U',
 };
 
 // Sampler (Salamander Grand Piano)
@@ -66,15 +49,6 @@ export interface PianoNote {
   velocity: number;
 }
 
-export interface PianoKey {
-  pitch:   number;
-  isBlack: boolean;
-  isC:     boolean;
-  x:       number;
-  name:    string;   // e.g. "C4"
-  kbKey:   string;   // keyboard shortcut letter, e.g. "Z"
-}
-
 interface SavedRoll { _id: string; nombre: string; bpm: number; notes: PianoNote[]; }
 
 @Component({
@@ -86,7 +60,7 @@ interface SavedRoll { _id: string; nombre: string; bpm: number; notes: PianoNote
 export class AudioPianoRoll implements AfterViewInit, OnDestroy {
 
   @ViewChild('gridCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('keysScroll') keysScrollRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('container')  containerRef!: ElementRef<HTMLDivElement>;
 
   // ── Roll state
   notes:        PianoNote[] = [];
@@ -99,23 +73,19 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   samplerStatus = 'Cargando piano…';
 
   // ── Grid dims (template)
-  readonly KEY_W    = KEY_W;
-  readonly NOTE_H   = NOTE_H;
-  readonly BEAT_W   = BEAT_W;
-  readonly gridW    = KEY_W + BEATS * BEAT_W;
-  readonly gridH    = (PITCH_MAX - PITCH_MIN + 1) * NOTE_H;
+  readonly KEY_W  = KEY_W;
+  readonly NOTE_H = NOTE_H;
+  readonly BEAT_W = BEAT_W;
+  readonly gridW  = KEY_W + BEATS * BEAT_W;
+  readonly gridH  = (PITCH_MAX - PITCH_MIN + 1) * NOTE_H;
 
-  // ── Piano keyboard (template)
-  pianoKeys:         PianoKey[] = [];
-  pianoWidth         = 0;
-  activeKeys         = new Set<number>();
-  kbOctave           = 4;
-  readonly WHITE_KEY_W = WHITE_W;
-  readonly WHITE_KEY_H = WHITE_H;
-  readonly BLACK_KEY_W = BLACK_W;
-  readonly BLACK_KEY_H = BLACK_H;
+  // ── Piano vertical overlay
+  pianoScrollLeft = 0;           // follows horizontal scroll
+  kbOctave        = 4;           // base octave for keyboard shortcuts
 
-  private readonly pkStartX: number; // absolute x of A0
+  get activeKeysList(): number[] {
+    return [...this.activeKeys].filter(p => p >= PITCH_MIN && p <= PITCH_MAX);
+  }
 
   // ── Grid drag
   private dragMode: 'move' | 'resize' | null = null;
@@ -131,24 +101,21 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   private phTimer:   any = null;
   private phStart    = 0;
 
-  // ── Mouse / keyboard state
+  // ── Piano mouse/keyboard state
+  private activeKeys   = new Set<number>();
   private mouseDown    = false;
   private lastKeyPitch: number | null = null;
   private kbDownFn!: (e: KeyboardEvent) => void;
   private kbUpFn!:   (e: KeyboardEvent) => void;
   private globalUpFn!: () => void;
 
-  constructor(private http: HttpClient, private auth: AuthService, private zone: NgZone) {
-    this.pkStartX = Math.floor(PK_MIN / 12) * OCT_W + SEM_X[PK_MIN % 12];
-    this.buildPianoKeys();
-  }
+  constructor(private http: HttpClient, private auth: AuthService, private zone: NgZone) {}
 
   ngAfterViewInit() {
     this.drawGrid();
     this.loadList();
     this.initSampler();
     this.setupListeners();
-    setTimeout(() => this.scrollToPitch(60), 150); // scroll to C4
   }
 
   ngOnDestroy() {
@@ -160,55 +127,12 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     document.removeEventListener('mouseup', this.globalUpFn);
   }
 
-  // ── Piano key builder ─────────────────────────────────
+  // ── Grid scroll → keep piano overlay at left edge ────
 
-  private buildPianoKeys() {
-    const keys: PianoKey[] = [];
-    const basePitch = this.kbOctave * 12;
-
-    for (let p = PK_MIN; p <= PK_MAX; p++) {
-      const rel   = p - basePitch;
-      const kbKey = rel >= 0 && rel <= 23 ? (KB_LABELS[rel] || '') : '';
-      const absX  = Math.floor(p / 12) * OCT_W + SEM_X[p % 12];
-      keys.push({
-        pitch:   p,
-        isBlack: BLACK_SET.has(p % 12),
-        isC:     p % 12 === 0,
-        x:       absX - this.pkStartX,
-        name:    NOTE_NAMES[p % 12] + (Math.floor(p / 12) - 1),
-        kbKey,
-      });
-    }
-
-    const lastWhite = [...keys].reverse().find(k => !k.isBlack)!;
-    this.pianoWidth = lastWhite.x + WHITE_W;
-    this.pianoKeys  = keys;
+  onGridScroll() {
+    const el = this.containerRef?.nativeElement;
+    if (el) this.pianoScrollLeft = el.scrollLeft;
   }
-
-  private refreshKbLabels() {
-    const base = this.kbOctave * 12;
-    this.pianoKeys = this.pianoKeys.map(k => {
-      const rel = k.pitch - base;
-      return { ...k, kbKey: rel >= 0 && rel <= 23 ? (KB_LABELS[rel] || '') : '' };
-    });
-  }
-
-  shiftOctave(delta: number) {
-    const next = this.kbOctave + delta;
-    if (next < 1 || next > 7) return;
-    this.kbOctave = next;
-    this.refreshKbLabels();
-    this.scrollToPitch(next * 12);
-  }
-
-  private scrollToPitch(pitch: number) {
-    const el = this.keysScrollRef?.nativeElement;
-    if (!el) return;
-    const absX = Math.floor(pitch / 12) * OCT_W + SEM_X[pitch % 12] - this.pkStartX;
-    el.scrollLeft = Math.max(0, absX - el.clientWidth / 3);
-  }
-
-  trackByPitch(_: number, k: PianoKey) { return k.pitch; }
 
   // ── Sampler ───────────────────────────────────────────
 
@@ -226,19 +150,61 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     return NOTE_NAMES[pitch % 12] + (Math.floor(pitch / 12) - 1);
   }
 
-  private triggerOn(pitch: number, vel = 0.8) {
+  private pressKey(pitch: number) {
+    if (this.activeKeys.has(pitch)) return;
+    const next = new Set(this.activeKeys); next.add(pitch);
+    this.activeKeys = next;
     if (!this.sampler || !this.samplerReady) return;
     toneStart().then(() => {
-      this.sampler!.triggerAttack(this.midiToName(pitch), toneNow(), vel);
+      this.sampler!.triggerAttack(this.midiToName(pitch), toneNow(), 0.8);
     });
   }
 
-  private triggerOff(pitch: number) {
+  private releaseKey(pitch: number) {
+    const next = new Set(this.activeKeys); next.delete(pitch);
+    this.activeKeys = next;
     if (!this.sampler || !this.samplerReady) return;
     try { this.sampler.triggerRelease(this.midiToName(pitch), toneNow()); } catch {}
   }
 
-  // ── Listeners (keyboard + global mouseup) ─────────────
+  // ── Vertical piano overlay mouse events ──────────────
+
+  private pitchFromEvent(e: MouseEvent): number {
+    const el   = this.containerRef.nativeElement;
+    const rect = el.getBoundingClientRect();
+    const y    = e.clientY - rect.top + el.scrollTop;
+    return Math.min(PITCH_MAX, Math.max(PITCH_MIN, PITCH_MAX - Math.floor(y / NOTE_H)));
+  }
+
+  onVPianoDown(e: MouseEvent) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const pitch = this.pitchFromEvent(e);
+    this.mouseDown    = true;
+    this.lastKeyPitch = pitch;
+    this.pressKey(pitch);
+  }
+
+  onVPianoMove(e: MouseEvent) {
+    if (!this.mouseDown) return;
+    const pitch = this.pitchFromEvent(e);
+    if (pitch === this.lastKeyPitch) return;
+    if (this.lastKeyPitch !== null) this.releaseKey(this.lastKeyPitch);
+    this.lastKeyPitch = pitch;
+    this.pressKey(pitch);
+  }
+
+  onVPianoUp() {
+    if (this.lastKeyPitch !== null) { this.releaseKey(this.lastKeyPitch); this.lastKeyPitch = null; }
+    this.mouseDown = false;
+  }
+
+  // ── Keyboard setup ────────────────────────────────────
+
+  shiftOctave(delta: number) {
+    const next = this.kbOctave + delta;
+    if (next >= 1 && next <= 7) this.kbOctave = next;
+  }
 
   private setupListeners() {
     this.globalUpFn = () => {
@@ -254,14 +220,12 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       if (e.repeat) return;
       const t = e.target as HTMLElement;
       if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;
-
       if (e.key === 'ArrowLeft')  { e.preventDefault(); this.zone.run(() => this.shiftOctave(-1)); return; }
       if (e.key === 'ArrowRight') { e.preventDefault(); this.zone.run(() => this.shiftOctave(+1)); return; }
-
       const rel = KB_MAP[e.key.toLowerCase()];
       if (rel === undefined) return;
       const pitch = this.kbOctave * 12 + rel;
-      if (pitch < PK_MIN || pitch > PK_MAX || this.activeKeys.has(pitch)) return;
+      if (pitch < PITCH_MIN || pitch > PITCH_MAX || this.activeKeys.has(pitch)) return;
       this.zone.run(() => this.pressKey(pitch));
     };
 
@@ -275,45 +239,6 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     document.addEventListener('keydown', this.kbDownFn);
     document.addEventListener('keyup',   this.kbUpFn);
     document.addEventListener('mouseup', this.globalUpFn);
-  }
-
-  // ── Piano key press / release ─────────────────────────
-
-  private pressKey(pitch: number) {
-    if (this.activeKeys.has(pitch)) return;
-    const next = new Set(this.activeKeys);
-    next.add(pitch);
-    this.activeKeys = next;
-    this.triggerOn(pitch);
-  }
-
-  private releaseKey(pitch: number) {
-    const next = new Set(this.activeKeys);
-    next.delete(pitch);
-    this.activeKeys = next;
-    this.triggerOff(pitch);
-  }
-
-  onPianoMouseDown(pitch: number, e: MouseEvent) {
-    e.preventDefault();
-    this.mouseDown    = true;
-    this.lastKeyPitch = pitch;
-    this.pressKey(pitch);
-  }
-
-  onPianoMouseEnter(pitch: number) {
-    if (!this.mouseDown) return;
-    if (this.lastKeyPitch !== null && this.lastKeyPitch !== pitch) {
-      this.releaseKey(this.lastKeyPitch);
-    }
-    this.lastKeyPitch = pitch;
-    this.pressKey(pitch);
-  }
-
-  onPianoMouseUp(pitch: number) {
-    this.releaseKey(pitch);
-    this.mouseDown    = false;
-    this.lastKeyPitch = null;
   }
 
   // ── Grid drawing ──────────────────────────────────────
@@ -367,6 +292,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       ctx.fillText(`${b / 4 + 1}`, KEY_W + b * BEAT_W + 4, 11);
     }
 
+    // Piano keys (canvas background + labels)
     for (let i = 0; i < PITCH_MAX - PITCH_MIN + 1; i++) {
       const pitch = PITCH_MAX - i;
       const y     = i * NOTE_H;

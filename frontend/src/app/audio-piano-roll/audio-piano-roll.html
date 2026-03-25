@@ -3,14 +3,21 @@
   <!-- ── Toolbar ─────────────────────────────────── -->
   <div class="pr-toolbar">
     <div class="pr-left">
-      <button class="btn-play"  (click)="play()"  [disabled]="isPlaying || notes.length === 0 || !samplerReady">▶ Play</button>
+      <button class="btn-play" (click)="play()" [disabled]="isPlaying || notes.length === 0 || !samplerReady">▶ Play</button>
       <span class="sampler-status" [class.ready]="samplerReady">{{ samplerStatus }}</span>
-      <button class="btn-stop"  (click)="stop()"  [disabled]="!isPlaying">⏹ Stop</button>
+      <button class="btn-stop" (click)="stop()" [disabled]="!isPlaying">⏹ Stop</button>
       <div class="bpm-box">
         <label>BPM</label>
         <input type="number" [(ngModel)]="bpm" min="40" max="240" [disabled]="isPlaying">
       </div>
       <span class="note-count">{{ notes.length }} notas</span>
+      <!-- Octave controls for keyboard play -->
+      <div class="kb-oct-box">
+        <span class="kb-oct-label">Teclado (Z-M / Q-U) Oct:</span>
+        <button class="btn-oct" (click)="shiftOctave(-1)" [disabled]="kbOctave <= 1">◀</button>
+        <span class="kb-oct-num">{{ kbOctave }}</span>
+        <button class="btn-oct" (click)="shiftOctave(1)"  [disabled]="kbOctave >= 7">▶</button>
+      </div>
     </div>
     <div class="pr-right">
       <input class="save-input" [(ngModel)]="saveName" placeholder="Nombre del proyecto">
@@ -21,7 +28,7 @@
 
   <!-- ── Hint ──────────────────────────────────── -->
   <p class="pr-hint">
-    Click en el grid para crear nota · Arrastrar para mover · Borde derecho para ajustar duración · Clic derecho para eliminar
+    Click en el grid para crear nota · Click en el piano (izquierda) para tocar · Clic derecho en nota para eliminar
   </p>
 
   <!-- ── Beat ruler ─────────────────────────────── -->
@@ -39,11 +46,12 @@
     (mousemove)="onMouseMove($event, container)"
     (mouseup)="onMouseUp()"
     (mouseleave)="onMouseUp()"
-    (contextmenu)="$event.preventDefault()">
+    (contextmenu)="$event.preventDefault()"
+    (scroll)="onGridScroll()">
 
     <div class="pr-inner" [style.width.px]="gridW" [style.height.px]="gridH">
 
-      <!-- Grid canvas (background) -->
+      <!-- Grid canvas (background + static piano key visuals) -->
       <canvas #gridCanvas class="pr-canvas" [style.width.px]="gridW" [style.height.px]="gridH"></canvas>
 
       <!-- Notes -->
@@ -65,51 +73,25 @@
         [style.height.px]="gridH">
       </div>
 
-    </div>
-  </div>
+      <!-- ── Vertical piano overlay (sticks to left on horizontal scroll) -->
+      <div class="pr-vkeys-overlay"
+           [style.height.px]="gridH"
+           [style.transform]="'translateX(' + pianoScrollLeft + 'px)'"
+           (mousedown)="onVPianoDown($event)"
+           (mousemove)="onVPianoMove($event)"
+           (mouseup)="onVPianoUp()"
+           (mouseleave)="onVPianoUp()">
 
-  <!-- ── Piano keyboard ─────────────────────────── -->
-  <div class="pr-keyboard-wrap">
-
-    <div class="pr-kb-header">
-      <div class="pr-kb-hints">
-        <span class="pr-kb-legend">
-          Teclado:
-          <kbd>Z</kbd>–<kbd>M</kbd> &amp; <kbd>Q</kbd>–<kbd>U</kbd>
-          &nbsp;·&nbsp; Octava:
-          <kbd>←</kbd><kbd>→</kbd>
-        </span>
-      </div>
-      <div class="pr-kb-octave">
-        <button class="btn-oct" (click)="shiftOctave(-1)" [disabled]="kbOctave <= 1">◀</button>
-        <span class="pr-oct-label">Octava {{ kbOctave }}</span>
-        <button class="btn-oct" (click)="shiftOctave(1)"  [disabled]="kbOctave >= 7">▶</button>
-      </div>
-    </div>
-
-    <div class="pr-keys-scroll" #keysScroll (selectstart)="$event.preventDefault()">
-      <div class="pr-keys-inner"
-           [style.width.px]="pianoWidth"
-           [style.height.px]="WHITE_KEY_H">
-
-        <div *ngFor="let key of pianoKeys; trackBy: trackByPitch"
-             class="pr-key"
-             [class.pr-key-black]="key.isBlack"
-             [class.pr-key-active]="activeKeys.has(key.pitch)"
-             [style.left.px]="key.x"
-             [style.width.px]="key.isBlack ? BLACK_KEY_W : WHITE_KEY_W"
-             [style.height.px]="key.isBlack ? BLACK_KEY_H : WHITE_KEY_H"
-             (mousedown)="onPianoMouseDown(key.pitch, $event)"
-             (mouseup)="onPianoMouseUp(key.pitch)"
-             (mouseenter)="onPianoMouseEnter(key.pitch)">
-
-          <!-- C note label (only on white C keys) -->
-          <span class="pr-key-name" *ngIf="key.isC">{{ key.name }}</span>
-          <!-- Keyboard shortcut label -->
-          <span class="pr-key-kb"   *ngIf="key.kbKey">{{ key.kbKey }}</span>
-
+        <!-- Active key highlights (cyan glow over pressed keys) -->
+        <div *ngFor="let p of activeKeysList"
+             class="pr-vkey-hl"
+             [class.pr-vkey-hl-black]="isBlack(p)"
+             [style.top.px]="noteTop(p)"
+             [style.height.px]="NOTE_H - 1">
         </div>
+
       </div>
+
     </div>
   </div>
 
