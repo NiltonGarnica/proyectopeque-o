@@ -9,7 +9,7 @@ import { Sampler, start as toneStart, now as toneNow } from 'tone';
 const API = 'https://proyectopeque-o.onrender.com';
 
 // ── Grid constants ───────────────────────────────────
-const PITCH_MIN  = 21;   // A0  (full 88-key piano)
+const PITCH_MIN  = 21;   // A0
 const PITCH_MAX  = 108;  // C8
 const BEATS      = 32;
 const BEAT_W     = 64;
@@ -17,18 +17,19 @@ const NOTE_H     = 18;
 const KEY_W      = 52;
 const SNAP       = 0.25;
 const RESIZE_PX  = 10;
+const BEATS_PER_BAR = 4;
 
 // ── Shared ────────────────────────────────────────────
 const BLACK_SET  = new Set([1, 3, 6, 8, 10]);
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
-// Keyboard → semitone (two-octave layout: lower = Z-M, upper = Q-U)
+// Keyboard → semitone
 const KB_MAP: Record<string, number> = {
   'z':0, 's':1, 'x':2, 'd':3, 'c':4, 'v':5, 'g':6, 'b':7, 'h':8, 'n':9, 'j':10, 'm':11,
   'q':12,'2':13,'w':14,'3':15,'e':16,'r':17,'5':18,'t':19,'6':20,'y':21,'7':22,'u':23,
 };
 
-// Sampler (Salamander Grand Piano)
+// Sampler
 const SAMPLER_BASE = 'https://tonejs.github.io/audio/salamander/';
 const SAMPLER_URLS: Record<string, string> = {
   A0:'A0.mp3',  C1:'C1.mp3',  'D#1':'Ds1.mp3','F#1':'Fs1.mp3',
@@ -49,6 +50,7 @@ export interface PianoNote {
   velocity: number;
 }
 
+interface SelBox { beatStart: number; beatEnd: number; pitchMin: number; pitchMax: number; }
 interface SavedRoll { _id: string; nombre: string; bpm: number; notes: PianoNote[]; }
 
 @Component({
@@ -72,28 +74,42 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   samplerReady  = false;
   samplerStatus = 'Cargando piano…';
 
-  // ── Grid dims (template)
+  // ── Grid dims
   readonly KEY_W  = KEY_W;
   readonly NOTE_H = NOTE_H;
   readonly BEAT_W = BEAT_W;
   readonly gridW  = KEY_W + BEATS * BEAT_W;
   readonly gridH  = (PITCH_MAX - PITCH_MIN + 1) * NOTE_H;
 
-  // ── Piano vertical overlay
-  pianoScrollLeft = 0;           // follows horizontal scroll
-  kbOctave        = 4;           // base octave for keyboard shortcuts
+  // ── Tool mode
+  toolMode: 'draw' | 'select' = 'draw';
+
+  // ── Selection
+  selectedNotes = new Set<string>();
+  clipboard:    PianoNote[] = [];
+  selBox:       SelBox | null = null;
+
+  // ── Piano overlay
+  pianoScrollLeft = 0;
+  kbOctave        = 4;
 
   get activeKeysList(): number[] {
     return [...this.activeKeys].filter(p => p >= PITCH_MIN && p <= PITCH_MAX);
   }
 
-  // ── Grid drag
-  private dragMode: 'move' | 'resize' | null = null;
+  // ── Grid drag (single note)
+  private dragMode: 'move' | 'resize' | 'move-sel' | null = null;
   private dragNote: PianoNote | null = null;
   private dragStartBeat    = 0;
   private dragStartPitch   = 0;
   private noteStartAtDown  = 0;
   private notePitchAtDown  = 0;
+
+  // ── Selection drag
+  private selDragging    = false;
+  private selAnchorBeat  = 0;
+  private selAnchorPitch = 0;
+  private selDragOrigins = new Map<string, { start: number; pitch: number }>();
 
   // ── Audio
   private sampler:   Sampler | null = null;
@@ -101,7 +117,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   private phTimer:   any = null;
   private phStart    = 0;
 
-  // ── Piano mouse/keyboard state
+  // ── Piano keyboard state
   private activeKeys   = new Set<number>();
   private mouseDown    = false;
   private lastKeyPitch: number | null = null;
@@ -127,7 +143,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     document.removeEventListener('mouseup', this.globalUpFn);
   }
 
-  // ── Grid scroll → keep piano overlay at left edge ────
+  // ── Grid scroll ───────────────────────────────────────
 
   onGridScroll() {
     const el = this.containerRef?.nativeElement;
@@ -138,9 +154,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
 
   private initSampler() {
     this.sampler = new Sampler({
-      urls:    SAMPLER_URLS,
-      release: 1.5,
-      baseUrl: SAMPLER_BASE,
+      urls: SAMPLER_URLS, release: 1.5, baseUrl: SAMPLER_BASE,
       onload:  () => this.zone.run(() => { this.samplerReady = true; this.samplerStatus = '🎹 Piano listo'; }),
       onerror: () => this.zone.run(() => { this.samplerStatus = '⚠ Error al cargar'; }),
     }).toDestination();
@@ -155,9 +169,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     const next = new Set(this.activeKeys); next.add(pitch);
     this.activeKeys = next;
     if (!this.sampler || !this.samplerReady) return;
-    toneStart().then(() => {
-      this.sampler!.triggerAttack(this.midiToName(pitch), toneNow(), 0.8);
-    });
+    toneStart().then(() => { this.sampler!.triggerAttack(this.midiToName(pitch), toneNow(), 0.8); });
   }
 
   private releaseKey(pitch: number) {
@@ -167,12 +179,12 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     try { this.sampler.triggerRelease(this.midiToName(pitch), toneNow()); } catch {}
   }
 
-  // ── Vertical piano overlay mouse events ──────────────
+  // ── Vertical piano overlay ────────────────────────────
 
   private pitchFromEvent(e: MouseEvent): number {
-    const el   = this.containerRef.nativeElement;
+    const el = this.containerRef.nativeElement;
     const rect = el.getBoundingClientRect();
-    const y    = e.clientY - rect.top + el.scrollTop;
+    const y = e.clientY - rect.top + el.scrollTop;
     return Math.min(PITCH_MAX, Math.max(PITCH_MIN, PITCH_MAX - Math.floor(y / NOTE_H)));
   }
 
@@ -180,8 +192,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     if (e.button !== 0) return;
     e.stopPropagation();
     const pitch = this.pitchFromEvent(e);
-    this.mouseDown    = true;
-    this.lastKeyPitch = pitch;
+    this.mouseDown = true; this.lastKeyPitch = pitch;
     this.pressKey(pitch);
   }
 
@@ -198,6 +209,56 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     if (this.lastKeyPitch !== null) { this.releaseKey(this.lastKeyPitch); this.lastKeyPitch = null; }
     this.mouseDown = false;
   }
+
+  // ── Tool mode ─────────────────────────────────────────
+
+  setTool(mode: 'draw' | 'select') {
+    this.toolMode = mode;
+    if (mode === 'draw') { this.selectedNotes = new Set(); this.selBox = null; }
+  }
+
+  // ── Selection operations ──────────────────────────────
+
+  selectAll() {
+    this.selectedNotes = new Set(this.notes.map(n => n.id));
+  }
+
+  deleteSelected() {
+    if (!this.selectedNotes.size) return;
+    this.notes = this.notes.filter(n => !this.selectedNotes.has(n.id));
+    this.selectedNotes = new Set();
+  }
+
+  copySelected() {
+    const sel = this.notes.filter(n => this.selectedNotes.has(n.id));
+    if (!sel.length) return;
+    this.clipboard = sel.map(n => ({ ...n }));
+  }
+
+  pasteNotes() {
+    if (!this.clipboard.length) return;
+    const minStart  = Math.min(...this.clipboard.map(n => n.start));
+    const maxEnd    = this.notes.length ? Math.max(...this.notes.map(n => n.start + n.duration)) : 0;
+    const pasteFrom = Math.ceil(maxEnd / BEATS_PER_BAR) * BEATS_PER_BAR;
+
+    const pasted = this.clipboard.map(n => ({
+      ...n,
+      id:    this.uid(),
+      start: n.start - minStart + pasteFrom,
+    }));
+
+    this.notes = [...this.notes, ...pasted];
+    this.selectedNotes = new Set(pasted.map(n => n.id));
+  }
+
+  isSelected(id: string) { return this.selectedNotes.has(id); }
+
+  // ── Selection box render helpers ──────────────────────
+
+  selBoxLeft()   { return this.selBox ? KEY_W + this.selBox.beatStart * BEAT_W : 0; }
+  selBoxTop()    { return this.selBox ? (PITCH_MAX - this.selBox.pitchMax) * NOTE_H : 0; }
+  selBoxWidth()  { return this.selBox ? Math.max(2, (this.selBox.beatEnd  - this.selBox.beatStart) * BEAT_W) : 0; }
+  selBoxHeight() { return this.selBox ? Math.max(2, (this.selBox.pitchMax - this.selBox.pitchMin + 1) * NOTE_H) : 0; }
 
   // ── Keyboard setup ────────────────────────────────────
 
@@ -220,8 +281,20 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       if (e.repeat) return;
       const t = e.target as HTMLElement;
       if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;
+
+      // ── Ctrl shortcuts ──────────────────────────────
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'a') { e.preventDefault(); this.zone.run(() => this.selectAll()); return; }
+        if (e.key === 'c') { e.preventDefault(); this.zone.run(() => this.copySelected()); return; }
+        if (e.key === 'v') { e.preventDefault(); this.zone.run(() => this.pasteNotes()); return; }
+        return;
+      }
+
+      if (e.key === 'Delete' || e.key === 'Backspace') { this.zone.run(() => this.deleteSelected()); return; }
+      if (e.key === 'Escape') { this.zone.run(() => { this.selectedNotes = new Set(); this.selBox = null; }); return; }
       if (e.key === 'ArrowLeft')  { e.preventDefault(); this.zone.run(() => this.shiftOctave(-1)); return; }
       if (e.key === 'ArrowRight') { e.preventDefault(); this.zone.run(() => this.shiftOctave(+1)); return; }
+
       const rel = KB_MAP[e.key.toLowerCase()];
       if (rel === undefined) return;
       const pitch = this.kbOctave * 12 + rel;
@@ -251,6 +324,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Row backgrounds
     for (let i = 0; i < PITCH_MAX - PITCH_MIN + 1; i++) {
       const pitch = PITCH_MAX - i;
       const y     = i * NOTE_H;
@@ -265,6 +339,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       }
     }
 
+    // Horizontal lines
     for (let i = 0; i <= PITCH_MAX - PITCH_MIN + 1; i++) {
       const y = i * NOTE_H;
       ctx.strokeStyle = 'rgba(255,255,255,0.05)';
@@ -272,12 +347,14 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       ctx.beginPath(); ctx.moveTo(KEY_W, y); ctx.lineTo(this.gridW, y); ctx.stroke();
     }
 
+    // Vertical lines — bar, beat, half-beat
     for (let b = 0; b <= BEATS; b++) {
       const x     = KEY_W + b * BEAT_W;
-      const isBar = b % 4 === 0;
-      ctx.strokeStyle = isBar ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.08)';
-      ctx.lineWidth   = isBar ? 1.5 : 0.5;
+      const isBar = b % BEATS_PER_BAR === 0;
+      ctx.strokeStyle = isBar ? 'rgba(56,189,248,0.45)' : 'rgba(255,255,255,0.08)';
+      ctx.lineWidth   = isBar ? 2 : 0.5;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, this.gridH); ctx.stroke();
+
       if (b < BEATS) {
         const xh = x + BEAT_W / 2;
         ctx.strokeStyle = 'rgba(255,255,255,0.04)';
@@ -286,15 +363,20 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       }
     }
 
-    ctx.fillStyle = 'rgba(56,189,248,0.5)';
-    ctx.font = '10px monospace';
-    for (let b = 0; b < BEATS; b += 4) {
-      ctx.fillText(`${b / 4 + 1}`, KEY_W + b * BEAT_W + 4, 11);
+    // Bar number labels
+    for (let b = 0; b < BEATS; b += BEATS_PER_BAR) {
+      const bar = b / BEATS_PER_BAR + 1;
+      const x   = KEY_W + b * BEAT_W;
+      // Bar background tab
+      ctx.fillStyle = 'rgba(56,189,248,0.12)';
+      ctx.fillRect(x + 1, 0, BEAT_W * BEATS_PER_BAR - 2, 14);
+      ctx.fillStyle = 'rgba(56,189,248,0.85)';
+      ctx.font = 'bold 10px monospace';
+      ctx.fillText(`${bar}`, x + 5, 11);
     }
 
-    // ── Piano keys (colored ivory / black) ──────────────
-    const BK_W = Math.round(KEY_W * 0.64); // black key width (64% of column)
-
+    // Piano keys
+    const BK_W = Math.round(KEY_W * 0.64);
     for (let i = 0; i < PITCH_MAX - PITCH_MIN + 1; i++) {
       const pitch = PITCH_MAX - i;
       const y     = i * NOTE_H;
@@ -303,28 +385,23 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       const oct   = Math.floor(pitch / 12) - 1;
 
       if (isBlk) {
-        // Black key: dark gradient, narrower than full width
         const bkg = ctx.createLinearGradient(0, y, BK_W, y);
         bkg.addColorStop(0, '#0d1117');
         bkg.addColorStop(1, '#1a2035');
         ctx.fillStyle = bkg;
         ctx.fillRect(0, y + 0.5, BK_W, NOTE_H - 1);
-        // subtle right edge separator
         ctx.fillStyle = 'rgba(56,189,248,0.08)';
         ctx.fillRect(BK_W, y + 0.5, KEY_W - BK_W - 1, NOTE_H - 1);
       } else {
-        // White key: warm ivory gradient
         const wkg = ctx.createLinearGradient(0, y, KEY_W, y);
         wkg.addColorStop(0, '#e8e2d0');
         wkg.addColorStop(1, '#f5f0e2');
         ctx.fillStyle = wkg;
         ctx.fillRect(0, y + 0.5, KEY_W - 1, NOTE_H - 1);
-        // thin bottom divider between white keys
         ctx.fillStyle = 'rgba(0,0,0,0.18)';
         ctx.fillRect(0, y + NOTE_H - 1, KEY_W - 1, 0.5);
       }
 
-      // C note label
       if (sem === 0) {
         ctx.fillStyle = '#1a5f8f';
         ctx.font = 'bold 8px monospace';
@@ -332,7 +409,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       }
     }
 
-    // Right border of piano column
+    // Piano column border
     ctx.strokeStyle = 'rgba(56,189,248,0.35)';
     ctx.lineWidth   = 1;
     ctx.beginPath();
@@ -368,11 +445,21 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   onGridDown(e: MouseEvent, el: HTMLElement) {
     if (e.button !== 0) return;
     const r = el.getBoundingClientRect();
-    // Ignore clicks on scrollbar areas (12px scrollbar width + 2px margin)
     if (e.clientX > r.right - 14 || e.clientY > r.bottom - 14) return;
     if (e.clientX - r.left + el.scrollLeft < KEY_W) return;
 
     const { beat, pitch } = this.coords(e, el);
+
+    if (this.toolMode === 'select') {
+      if (!e.ctrlKey && !e.metaKey) this.selectedNotes = new Set();
+      this.selDragging    = true;
+      this.selAnchorBeat  = beat;
+      this.selAnchorPitch = pitch;
+      this.selBox = { beatStart: beat, beatEnd: beat, pitchMin: pitch, pitchMax: pitch };
+      return;
+    }
+
+    // Draw mode: create note
     const note: PianoNote = { id: this.uid(), pitch, start: beat, duration: SNAP, velocity: 0.8 };
     this.notes = [...this.notes, note];
     this.dragMode = 'resize';
@@ -382,7 +469,39 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
 
   onNoteDown(e: MouseEvent, note: PianoNote, el: HTMLElement) {
     e.stopPropagation();
-    if (e.button === 2) { this.notes = this.notes.filter(n => n.id !== note.id); return; }
+
+    // Right-click always deletes
+    if (e.button === 2) {
+      this.notes = this.notes.filter(n => n.id !== note.id);
+      this.selectedNotes.delete(note.id);
+      return;
+    }
+
+    if (this.toolMode === 'select') {
+      // Toggle selection with Ctrl, otherwise select this note
+      if (e.ctrlKey || e.metaKey) {
+        const next = new Set(this.selectedNotes);
+        next.has(note.id) ? next.delete(note.id) : next.add(note.id);
+        this.selectedNotes = next;
+      } else {
+        if (!this.selectedNotes.has(note.id)) {
+          this.selectedNotes = new Set([note.id]);
+        }
+      }
+      // Start moving all selected notes
+      this.dragMode = 'move-sel';
+      const { beat, pitch } = this.coords(e, el);
+      this.dragStartBeat  = beat;
+      this.dragStartPitch = pitch;
+      this.selDragOrigins = new Map(
+        this.notes
+          .filter(n => this.selectedNotes.has(n.id))
+          .map(n => [n.id, { start: n.start, pitch: n.pitch }])
+      );
+      return;
+    }
+
+    // Draw mode: move / resize single note
     const target  = e.currentTarget as HTMLElement;
     const xInNote = e.clientX - target.getBoundingClientRect().left;
 
@@ -400,6 +519,37 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   }
 
   onMouseMove(e: MouseEvent, el: HTMLElement) {
+    // Updating selection box
+    if (this.selDragging) {
+      const { beat, pitch } = this.coords(e, el);
+      this.selBox = {
+        beatStart:  Math.min(this.selAnchorBeat,  beat),
+        beatEnd:    Math.max(this.selAnchorBeat,  beat),
+        pitchMin:   Math.min(this.selAnchorPitch, pitch),
+        pitchMax:   Math.max(this.selAnchorPitch, pitch),
+      };
+      return;
+    }
+
+    // Moving all selected notes
+    if (this.dragMode === 'move-sel') {
+      const { beat, pitch } = this.coords(e, el);
+      const dBeat  = beat  - this.dragStartBeat;
+      const dPitch = pitch - this.dragStartPitch;
+      this.notes = this.notes.map(n => {
+        if (!this.selectedNotes.has(n.id)) return n;
+        const o = this.selDragOrigins.get(n.id);
+        if (!o) return n;
+        return {
+          ...n,
+          start: Math.max(0, this.snap(o.start + dBeat)),
+          pitch: Math.min(PITCH_MAX, Math.max(PITCH_MIN, o.pitch + dPitch)),
+        };
+      });
+      return;
+    }
+
+    // Single note move / resize
     if (!this.dragMode || !this.dragNote) return;
     const { beat, pitch } = this.coords(e, el);
     const note = this.dragNote;
@@ -413,7 +563,25 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     this.notes = [...this.notes];
   }
 
-  onMouseUp() { this.dragMode = null; this.dragNote = null; }
+  onMouseUp() {
+    if (this.selDragging && this.selBox) {
+      const { beatStart, beatEnd, pitchMin, pitchMax } = this.selBox;
+      const hit = this.notes
+        .filter(n =>
+          n.start < beatEnd + SNAP &&
+          n.start + n.duration > beatStart &&
+          n.pitch >= pitchMin &&
+          n.pitch <= pitchMax
+        )
+        .map(n => n.id);
+      this.selectedNotes = new Set([...this.selectedNotes, ...hit]);
+      this.selBox = null;
+    }
+    this.selDragging  = false;
+    this.dragMode     = null;
+    this.dragNote     = null;
+    this.selDragOrigins.clear();
+  }
 
   // ── Playback ─────────────────────────────────────────
 
@@ -475,6 +643,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     this.notes    = roll.notes.map(n => ({ ...n }));
     this.saveName = roll.nombre;
     this.bpm      = roll.bpm || 120;
+    this.selectedNotes = new Set();
   }
 
   deleteRoll(id: string) {
@@ -488,5 +657,6 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     if (!confirm('¿Borrar todas las notas?')) return;
     this.stop();
     this.notes = [];
+    this.selectedNotes = new Set();
   }
 }

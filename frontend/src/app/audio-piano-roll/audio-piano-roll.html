@@ -3,6 +3,11 @@
   <!-- ── Toolbar ─────────────────────────────────── -->
   <div class="pr-toolbar">
     <div class="pr-left">
+      <!-- Tool mode -->
+      <div class="tool-buttons">
+        <button class="btn-tool" [class.active]="toolMode==='draw'" (click)="setTool('draw')">✏ Dibujar</button>
+        <button class="btn-tool" [class.active]="toolMode==='select'" (click)="setTool('select')">⬚ Seleccionar</button>
+      </div>
       <button class="btn-play" (click)="play()" [disabled]="isPlaying || notes.length === 0 || !samplerReady">▶ Play</button>
       <span class="sampler-status" [class.ready]="samplerReady">{{ samplerStatus }}</span>
       <button class="btn-stop" (click)="stop()" [disabled]="!isPlaying">⏹ Stop</button>
@@ -20,6 +25,13 @@
       </div>
     </div>
     <div class="pr-right">
+      <!-- Selection actions (visible when notes are selected) -->
+      <div class="sel-actions" *ngIf="selectedNotes.size > 0">
+        <span class="sel-count">{{ selectedNotes.size }} sel.</span>
+        <button class="btn-sel-act" (click)="copySelected()" title="Copiar (Ctrl+C)">📋 Copiar</button>
+        <button class="btn-sel-act" (click)="pasteNotes()" [disabled]="clipboard.length === 0" title="Pegar (Ctrl+V)">📌 Pegar</button>
+        <button class="btn-sel-act btn-sel-del" (click)="deleteSelected()" title="Eliminar (Del)">✕ Eliminar</button>
+      </div>
       <input class="save-input" [(ngModel)]="saveName" placeholder="Nombre del proyecto">
       <button (click)="save()" [disabled]="notes.length === 0">💾 Guardar</button>
       <button class="btn-clear" (click)="clearAll()">🗑</button>
@@ -58,6 +70,7 @@
       <div *ngFor="let note of notes; trackBy: trackById"
         class="pr-note"
         [class.pr-note-black]="isBlack(note.pitch)"
+        [class.pr-note-selected]="isSelected(note.id)"
         [style.top.px]="noteTop(note.pitch)"
         [style.left.px]="noteLeft(note.start)"
         [style.width.px]="noteWidth(note.duration)"
@@ -65,6 +78,14 @@
         (mousedown)="onNoteDown($event, note, container)">
         <span class="pr-note-label" *ngIf="noteWidth(note.duration) > 28">{{ noteName(note.pitch) }}</span>
         <div class="pr-resize-handle"></div>
+      </div>
+
+      <!-- Selection box -->
+      <div *ngIf="selBox" class="pr-sel-box"
+           [style.left.px]="selBoxLeft()"
+           [style.top.px]="selBoxTop()"
+           [style.width.px]="selBoxWidth()"
+           [style.height.px]="selBoxHeight()">
       </div>
 
       <!-- Playhead -->
