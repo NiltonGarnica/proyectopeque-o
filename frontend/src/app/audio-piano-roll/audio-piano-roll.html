@@ -11,7 +11,8 @@
       <!-- Instrument selector -->
       <select class="inst-select" [(ngModel)]="currentInstrumentType" (change)="onInstrumentChange()" [disabled]="isPlaying">
         <option value="piano">🎹 Piano</option>
-        <option value="guitar">🎸 Guitarra</option>
+        <option value="guitar">🎸 Guitarra acústica</option>
+        <option value="guitar-electric">⚡ Guitarra eléctrica</option>
         <option value="bass">🎸 Bajo</option>
       </select>
       <button class="btn-play" (click)="play()" [disabled]="isPlaying || notes.length === 0 || !activeInstrumentReady">▶ Play</button>

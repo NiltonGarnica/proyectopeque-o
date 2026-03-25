@@ -75,11 +75,13 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   samplerStatus = 'Cargando piano…';
 
   // ── Instrument selection
-  currentInstrumentType: 'piano' | 'guitar' | 'bass' = 'piano';
-  guitarReady  = false;
-  guitarStatus = 'No cargado';
-  bassReady    = false;
-  bassStatus   = 'No cargado';
+  currentInstrumentType: 'piano' | 'guitar' | 'guitar-electric' | 'bass' = 'piano';
+  guitarReady          = false;
+  guitarStatus         = 'No cargado';
+  guitarElectricReady  = false;
+  guitarElectricStatus = 'No cargado';
+  bassReady            = false;
+  bassStatus           = 'No cargado';
 
   // ── Grid dims
   readonly KEY_W  = KEY_W;
@@ -105,20 +107,23 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   }
 
   get activeInstrumentReady(): boolean {
-    if (this.currentInstrumentType === 'guitar') return this.guitarReady;
-    if (this.currentInstrumentType === 'bass')   return this.bassReady;
+    if (this.currentInstrumentType === 'guitar')          return this.guitarReady;
+    if (this.currentInstrumentType === 'guitar-electric') return this.guitarElectricReady;
+    if (this.currentInstrumentType === 'bass')            return this.bassReady;
     return this.samplerReady;
   }
 
   get activeInstrumentStatus(): string {
-    if (this.currentInstrumentType === 'guitar') return this.guitarStatus;
-    if (this.currentInstrumentType === 'bass')   return this.bassStatus;
+    if (this.currentInstrumentType === 'guitar')          return this.guitarStatus;
+    if (this.currentInstrumentType === 'guitar-electric') return this.guitarElectricStatus;
+    if (this.currentInstrumentType === 'bass')            return this.bassStatus;
     return this.samplerStatus;
   }
 
   private getActiveInstrument(): Sampler | null {
-    if (this.currentInstrumentType === 'guitar') return this.guitar;
-    if (this.currentInstrumentType === 'bass')   return this.bass;
+    if (this.currentInstrumentType === 'guitar')          return this.guitar;
+    if (this.currentInstrumentType === 'guitar-electric') return this.guitarElectric;
+    if (this.currentInstrumentType === 'bass')            return this.bass;
     return this.sampler;
   }
 
@@ -137,9 +142,10 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   private selDragOrigins = new Map<string, { start: number; pitch: number }>();
 
   // ── Audio
-  private sampler:   Sampler | null = null;
-  private guitar:    Sampler | null = null;
-  private bass:      Sampler | null = null;
+  private sampler:         Sampler | null = null;
+  private guitar:          Sampler | null = null;
+  private guitarElectric:  Sampler | null = null;
+  private bass:            Sampler | null = null;
   private playTimer: any = null;
   private phTimer:   any = null;
   private phStart    = 0;
@@ -163,9 +169,10 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     this.stop();
-    this.sampler?.dispose(); this.sampler = null;
-    this.guitar?.dispose();  this.guitar  = null;
-    this.bass?.dispose();    this.bass    = null;
+    this.sampler?.dispose();        this.sampler        = null;
+    this.guitar?.dispose();         this.guitar         = null;
+    this.guitarElectric?.dispose(); this.guitarElectric = null;
+    this.bass?.dispose();           this.bass           = null;
     document.removeEventListener('keydown', this.kbDownFn);
     document.removeEventListener('keyup',   this.kbUpFn);
     document.removeEventListener('mouseup', this.globalUpFn);
@@ -207,6 +214,24 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     }).toDestination();
   }
 
+  private initGuitarElectric() {
+    this.guitarElectricStatus = 'Cargando guitarra eléctrica…';
+    this.guitarElectric = new Sampler({
+      urls: {
+        'A2':  'A2.mp3',  'A3':  'A3.mp3',  'A4':  'A4.mp3',  'A5':  'A5.mp3',
+        'C3':  'C3.mp3',  'C4':  'C4.mp3',  'C5':  'C5.mp3',  'C6':  'C6.mp3',
+        'C#2': 'Cs2.mp3',
+        'D#3': 'Ds3.mp3', 'D#4': 'Ds4.mp3', 'D#5': 'Ds5.mp3',
+        'E2':  'E2.mp3',
+        'F#2': 'Fs2.mp3', 'F#3': 'Fs3.mp3', 'F#4': 'Fs4.mp3', 'F#5': 'Fs5.mp3',
+      },
+      release: 1.0,
+      baseUrl: 'https://nbrosowsky.github.io/tonejs-instruments/samples/guitar-electric/',
+      onload:  () => this.zone.run(() => { this.guitarElectricReady = true; this.guitarElectricStatus = '🎸 Guitarra eléctrica lista'; }),
+      onerror: () => this.zone.run(() => { this.guitarElectricStatus = '⚠ Error guitarra eléctrica'; }),
+    }).toDestination();
+  }
+
   private initBass() {
     this.bassStatus = 'Cargando bajo…';
     this.bass = new Sampler({
@@ -224,8 +249,9 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   }
 
   onInstrumentChange() {
-    if (this.currentInstrumentType === 'guitar' && !this.guitar) this.initGuitar();
-    if (this.currentInstrumentType === 'bass'   && !this.bass)   this.initBass();
+    if (this.currentInstrumentType === 'guitar'          && !this.guitar)         this.initGuitar();
+    if (this.currentInstrumentType === 'guitar-electric' && !this.guitarElectric) this.initGuitarElectric();
+    if (this.currentInstrumentType === 'bass'            && !this.bass)           this.initBass();
   }
 
   private midiToName(pitch: number) {
@@ -687,9 +713,10 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     this.playheadBeat = 0;
     if (this.phTimer)   { clearInterval(this.phTimer);  this.phTimer   = null; }
     if (this.playTimer) { clearTimeout(this.playTimer); this.playTimer = null; }
-    try { this.sampler?.releaseAll(); } catch {}
-    try { this.guitar?.releaseAll();  } catch {}
-    try { this.bass?.releaseAll();    } catch {}
+    try { this.sampler?.releaseAll();        } catch {}
+    try { this.guitar?.releaseAll();         } catch {}
+    try { this.guitarElectric?.releaseAll(); } catch {}
+    try { this.bass?.releaseAll();           } catch {}
   }
 
   // ── Save / Load ──────────────────────────────────────
