@@ -9,8 +9,8 @@ import { Sampler, start as toneStart, now as toneNow } from 'tone';
 const API = 'https://proyectopeque-o.onrender.com';
 
 // ── Grid constants ───────────────────────────────────
-const PITCH_MIN  = 36;   // C2
-const PITCH_MAX  = 83;   // B5
+const PITCH_MIN  = 21;   // A0  (full 88-key piano)
+const PITCH_MAX  = 108;  // C8
 const BEATS      = 32;
 const BEAT_W     = 64;
 const NOTE_H     = 18;
@@ -292,7 +292,9 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       ctx.fillText(`${b / 4 + 1}`, KEY_W + b * BEAT_W + 4, 11);
     }
 
-    // Piano keys (canvas background + labels)
+    // ── Piano keys (colored ivory / black) ──────────────
+    const BK_W = Math.round(KEY_W * 0.64); // black key width (64% of column)
+
     for (let i = 0; i < PITCH_MAX - PITCH_MIN + 1; i++) {
       const pitch = PITCH_MAX - i;
       const y     = i * NOTE_H;
@@ -300,15 +302,43 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
       const isBlk = BLACK_SET.has(sem);
       const oct   = Math.floor(pitch / 12) - 1;
 
-      ctx.fillStyle = isBlk ? '#0f1f30' : 'rgba(255,255,255,0.1)';
-      ctx.fillRect(0, y + 0.5, KEY_W - 1, NOTE_H - 1);
+      if (isBlk) {
+        // Black key: dark gradient, narrower than full width
+        const bkg = ctx.createLinearGradient(0, y, BK_W, y);
+        bkg.addColorStop(0, '#0d1117');
+        bkg.addColorStop(1, '#1a2035');
+        ctx.fillStyle = bkg;
+        ctx.fillRect(0, y + 0.5, BK_W, NOTE_H - 1);
+        // subtle right edge separator
+        ctx.fillStyle = 'rgba(56,189,248,0.08)';
+        ctx.fillRect(BK_W, y + 0.5, KEY_W - BK_W - 1, NOTE_H - 1);
+      } else {
+        // White key: warm ivory gradient
+        const wkg = ctx.createLinearGradient(0, y, KEY_W, y);
+        wkg.addColorStop(0, '#e8e2d0');
+        wkg.addColorStop(1, '#f5f0e2');
+        ctx.fillStyle = wkg;
+        ctx.fillRect(0, y + 0.5, KEY_W - 1, NOTE_H - 1);
+        // thin bottom divider between white keys
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        ctx.fillRect(0, y + NOTE_H - 1, KEY_W - 1, 0.5);
+      }
 
+      // C note label
       if (sem === 0) {
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = 'bold 9px monospace';
-        ctx.fillText(`C${oct}`, 4, y + NOTE_H - 4);
+        ctx.fillStyle = '#1a5f8f';
+        ctx.font = 'bold 8px monospace';
+        ctx.fillText(`C${oct}`, 3, y + NOTE_H - 4);
       }
     }
+
+    // Right border of piano column
+    ctx.strokeStyle = 'rgba(56,189,248,0.35)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(KEY_W - 0.5, 0);
+    ctx.lineTo(KEY_W - 0.5, this.gridH);
+    ctx.stroke();
   }
 
   // ── Coordinate helpers ────────────────────────────────

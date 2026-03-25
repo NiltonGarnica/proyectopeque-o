@@ -232,19 +232,21 @@
   background: transparent;
 }
 
-/* Active key highlight */
+/* Active key highlight — white key */
 .pr-vkey-hl {
   position: absolute;
-  left: 1px;
-  width: 48px;
-  background: rgba(34,211,238,0.55);
+  left: 0;
+  width: 50px;          /* ~full KEY_W */
+  background: rgba(34,211,238,0.5);
   border-radius: 0 4px 4px 0;
-  box-shadow: 2px 0 12px rgba(34,211,238,0.55);
+  box-shadow: 2px 0 14px rgba(34,211,238,0.6);
   pointer-events: none;
 }
+/* Active key highlight — black key (narrower, matches BK_W ≈ 64% of 52) */
 .pr-vkey-hl-black {
-  background: rgba(14,165,233,0.75);
-  box-shadow: 2px 0 10px rgba(14,165,233,0.6);
+  width: 34px;          /* ~64% of KEY_W */
+  background: rgba(14,165,233,0.85);
+  box-shadow: 2px 0 12px rgba(14,165,233,0.7);
 }
 
 /* ── Saved list ──────────────────────── */
