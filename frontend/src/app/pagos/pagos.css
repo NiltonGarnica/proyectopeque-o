@@ -9,7 +9,7 @@
 
 .resumen-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -23,11 +23,25 @@
   text-align: center;
   border-left: 4px solid rgba(255,255,255,0.2);
 }
-.resumen-card.verde  { border-left-color: #34d399; }
+.resumen-card.azul     { border-left-color: #38bdf8; }
+.resumen-card.verde    { border-left-color: #34d399; }
 .resumen-card.amarillo { border-left-color: #fbbf24; }
 
 .resumen-label { font-size: 0.8em; color: #bae6fd; margin-bottom: 6px; }
 .resumen-valor { font-size: 1.5em; font-weight: bold; }
+
+.subtitulo { font-size: 0.85em; color: #7dd3fc; margin-top: 2px; }
+
+.historial-header {
+  font-size: 0.82em;
+  color: #7dd3fc;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.cargando { color: #7dd3fc; font-size: 0.9em; text-align: center; padding: 20px 0; }
 
 .card {
   background: linear-gradient(135deg, rgba(14,165,233,0.18), rgba(56,189,248,0.10));
@@ -73,6 +87,7 @@
   .page-header { flex-wrap: wrap; gap: 8px; }
   .page-header h2 { font-size: 1em; }
   .resumen-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .subtitulo { display: none; }
   .pago-item { flex-direction: column; align-items: flex-start; gap: 8px; }
   .card { padding: 14px 12px; }
 }

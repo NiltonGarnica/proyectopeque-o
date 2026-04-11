@@ -17,6 +17,7 @@ export class Pagos implements OnInit {
   proyectos: any[] = [];
 
   mostrarFormulario = false;
+  cargando = false;
   error = '';
   exito = '';
 
@@ -37,10 +38,20 @@ export class Pagos implements OnInit {
   }
 
   cargarPagos() {
+    this.cargando = true;
+    this.error = '';
     const userId = this.auth.getUserId();
     this.http.get<any[]>(`${API}/pagos/cliente/${userId}`).subscribe({
-      next: res => this.pagos = res,
-      error: () => this.error = 'Error al cargar pagos'
+      next: res => {
+        this.pagos = res.sort((a: any, b: any) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        this.cargando = false;
+      },
+      error: () => {
+        this.error = 'Error al cargar pagos';
+        this.cargando = false;
+      }
     });
   }
 
@@ -93,6 +104,10 @@ export class Pagos implements OnInit {
         this.error = err.error?.message || 'Error al registrar pago';
       }
     });
+  }
+
+  totalAcumulado(): number {
+    return this.pagos.reduce((sum, p) => sum + p.monto, 0);
   }
 
   totalPagado(): number {

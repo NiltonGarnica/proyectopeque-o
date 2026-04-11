@@ -2,7 +2,10 @@
 
   <!-- CABECERA -->
   <div class="page-header">
-    <h2>Mis Pagos</h2>
+    <div>
+      <h2>Mis Pagos</h2>
+      <p class="subtitulo">{{ auth.getNombre() }}</p>
+    </div>
     <div style="display:flex; gap:10px">
       <button (click)="mostrarFormulario = !mostrarFormulario">
         {{ mostrarFormulario ? 'Cancelar' : '+ Registrar Pago' }}
@@ -14,11 +17,15 @@
   <!-- RESUMEN -->
   <div class="resumen-grid">
     <div class="resumen-card">
-      <div class="resumen-label">Total de pagos</div>
+      <div class="resumen-label">Pagos registrados</div>
       <div class="resumen-valor">{{ pagos.length }}</div>
     </div>
+    <div class="resumen-card azul">
+      <div class="resumen-label">Total acumulado</div>
+      <div class="resumen-valor">${{ totalAcumulado() | number:'1.2-2' }}</div>
+    </div>
     <div class="resumen-card verde">
-      <div class="resumen-label">Total pagado</div>
+      <div class="resumen-label">Confirmados</div>
       <div class="resumen-valor">${{ totalPagado() | number:'1.2-2' }}</div>
     </div>
     <div class="resumen-card amarillo">
@@ -62,8 +69,15 @@
     <button (click)="registrarPago()">Confirmar pago</button>
   </div>
 
-  <!-- LISTA DE PAGOS -->
-  <div class="lista">
+  <!-- ESTADO CARGANDO -->
+  <p class="cargando" *ngIf="cargando">Cargando historial...</p>
+
+  <!-- HISTORIAL -->
+  <div class="historial-header" *ngIf="pagos.length > 0 && !cargando">
+    Historial de pagos
+  </div>
+
+  <div class="lista" *ngIf="!cargando">
     <div class="pago-item" *ngFor="let p of pagos">
       <div class="pago-info">
         <div class="pago-monto">${{ p.monto | number:'1.2-2' }}</div>
@@ -79,6 +93,8 @@
     </div>
   </div>
 
-  <p *ngIf="pagos.length === 0 && !mostrarFormulario">No tienes pagos registrados aún.</p>
+  <p *ngIf="pagos.length === 0 && !cargando && !mostrarFormulario">
+    No tienes pagos registrados aún.
+  </p>
 
 </div>
