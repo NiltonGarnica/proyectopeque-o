@@ -18,6 +18,10 @@ export class DashboardComponent implements OnInit {
   duracionHoras = 1;
   notas = '';
 
+  error = '';
+  errorCarga = '';
+  exito = '';
+
   servicios = ['grabacion', 'mezcla', 'masterizacion', 'produccion'];
 
   constructor(private http: HttpClient, public auth: AuthService) {}
@@ -28,11 +32,19 @@ export class DashboardComponent implements OnInit {
 
   cargarReservas() {
     const userId = this.auth.getUserId();
-    this.http.get<any[]>(`${API}/reservas/cliente/${userId}`)
-      .subscribe(res => this.reservas = res);
+    this.http.get<any[]>(`${API}/reservas/cliente/${userId}`).subscribe({
+      next: res => this.reservas = res,
+      error: () => this.errorCarga = 'No se pudieron cargar las reservas. Intenta de nuevo.'
+    });
   }
 
   crearReserva() {
+    this.error = '';
+    this.exito = '';
+
+    if (!this.fecha) { this.error = 'La fecha es obligatoria'; return; }
+    if (!this.duracionHoras || this.duracionHoras < 1) { this.error = 'La duración debe ser al menos 1 hora'; return; }
+
     const clienteId = this.auth.getUserId();
     this.http.post(`${API}/reservas`, {
       clienteId,
@@ -40,11 +52,17 @@ export class DashboardComponent implements OnInit {
       fecha: this.fecha,
       duracionHoras: this.duracionHoras,
       notas: this.notas
-    }).subscribe(() => {
-      this.fecha = '';
-      this.notas = '';
-      this.duracionHoras = 1;
-      this.cargarReservas();
+    }).subscribe({
+      next: () => {
+        this.exito = 'Reserva creada correctamente';
+        this.fecha = '';
+        this.notas = '';
+        this.duracionHoras = 1;
+        this.cargarReservas();
+      },
+      error: (err) => {
+        this.error = err.error?.message || 'Error al crear la reserva';
+      }
     });
   }
 

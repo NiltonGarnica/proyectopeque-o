@@ -32,29 +32,42 @@ export class Admin implements OnInit {
   }
 
   cargarTodo() {
-    this.http.get<any[]>(`${API}/reservas`).subscribe({ next: res => this.reservas = res });
-    this.http.get<any[]>(`${API}/pagos`).subscribe({ next: res => this.pagos = res });
-    this.http.get<any[]>(`${API}/proyectos`).subscribe({ next: res => this.proyectos = res });
+    this.error = '';
+    this.http.get<any[]>(`${API}/reservas`).subscribe({
+      next: res => this.reservas = res,
+      error: () => this.error = 'Error al cargar reservas'
+    });
+    this.http.get<any[]>(`${API}/pagos`).subscribe({
+      next: res => this.pagos = res,
+      error: () => this.error = 'Error al cargar pagos'
+    });
+    this.http.get<any[]>(`${API}/proyectos`).subscribe({
+      next: res => this.proyectos = res,
+      error: () => this.error = 'Error al cargar proyectos'
+    });
   }
 
   cambiarEstadoReserva(id: string, estado: string) {
+    this.error = '';
     this.http.patch(`${API}/reservas/${id}/estado`, { estado }).subscribe({
       next: () => { this.exito = 'Estado actualizado'; this.cargarTodo(); },
-      error: () => this.error = 'Error al actualizar'
+      error: (err) => this.error = err.error?.message || 'Error al actualizar'
     });
   }
 
   cambiarEstadoPago(id: string, estado: string) {
+    this.error = '';
     this.http.patch(`${API}/pagos/${id}/estado`, { estado }).subscribe({
       next: () => { this.exito = 'Estado actualizado'; this.cargarTodo(); },
-      error: () => this.error = 'Error al actualizar'
+      error: (err) => this.error = err.error?.message || 'Error al actualizar'
     });
   }
 
   cambiarEstadoProyecto(id: string, estado: string) {
+    this.error = '';
     this.http.patch(`${API}/proyectos/${id}/estado`, { estado }).subscribe({
       next: () => { this.exito = 'Estado actualizado'; this.cargarTodo(); },
-      error: () => this.error = 'Error al actualizar'
+      error: (err) => this.error = err.error?.message || 'Error al actualizar'
     });
   }
 
@@ -62,7 +75,7 @@ export class Admin implements OnInit {
     if (!confirm('¿Eliminar esta reserva?')) return;
     this.http.delete(`${API}/reservas/${id}`).subscribe({
       next: () => this.cargarTodo(),
-      error: () => this.error = 'Error al eliminar'
+      error: (err) => this.error = err.error?.message || 'Error al eliminar'
     });
   }
 
@@ -70,7 +83,7 @@ export class Admin implements OnInit {
     if (!confirm('¿Eliminar este proyecto?')) return;
     this.http.delete(`${API}/proyectos/${id}`).subscribe({
       next: () => this.cargarTodo(),
-      error: () => this.error = 'Error al eliminar'
+      error: (err) => this.error = err.error?.message || 'Error al eliminar'
     });
   }
 

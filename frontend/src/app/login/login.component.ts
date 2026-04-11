@@ -17,9 +17,15 @@ export class LoginComponent {
 
   login() {
     this.error = '';
-    this.auth.login(this.correo, this.password).subscribe({
+
+    if (!this.correo.trim()) { this.error = 'El correo es obligatorio'; return; }
+    if (!this.password) { this.error = 'La contraseña es obligatoria'; return; }
+
+    this.auth.login(this.correo.trim(), this.password).subscribe({
       next: () => this.router.navigate(['/dashboard']),
-      error: () => this.error = 'Correo o contraseña incorrectos'
+      error: (err) => {
+        this.error = err.error?.message || 'Correo o contraseña incorrectos';
+      }
     });
   }
 }

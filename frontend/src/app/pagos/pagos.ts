@@ -20,7 +20,6 @@ export class Pagos implements OnInit {
   error = '';
   exito = '';
 
-  // Formulario
   monto: number | null = null;
   metodo = 'efectivo';
   referencia = '';
@@ -48,14 +47,16 @@ export class Pagos implements OnInit {
   cargarReservas() {
     const userId = this.auth.getUserId();
     this.http.get<any[]>(`${API}/reservas/cliente/${userId}`).subscribe({
-      next: res => this.reservas = res
+      next: res => this.reservas = res,
+      error: () => { /* silencioso: es opcional para el formulario */ }
     });
   }
 
   cargarProyectos() {
     const userId = this.auth.getUserId();
     this.http.get<any[]>(`${API}/proyectos/cliente/${userId}`).subscribe({
-      next: res => this.proyectos = res
+      next: res => this.proyectos = res,
+      error: () => { /* silencioso: es opcional para el formulario */ }
     });
   }
 
@@ -64,7 +65,7 @@ export class Pagos implements OnInit {
     this.exito = '';
 
     if (!this.monto || this.monto <= 0) {
-      this.error = 'Ingresa un monto válido';
+      this.error = 'Ingresa un monto válido mayor a 0';
       return;
     }
 
@@ -72,7 +73,7 @@ export class Pagos implements OnInit {
       clienteId: this.auth.getUserId(),
       monto: this.monto,
       metodo: this.metodo,
-      referencia: this.referencia || undefined
+      referencia: this.referencia.trim() || undefined
     };
 
     if (this.reservaId) body.reservaId = this.reservaId;
@@ -88,7 +89,9 @@ export class Pagos implements OnInit {
         this.mostrarFormulario = false;
         this.cargarPagos();
       },
-      error: () => this.error = 'Error al registrar pago'
+      error: (err) => {
+        this.error = err.error?.message || 'Error al registrar pago';
+      }
     });
   }
 
