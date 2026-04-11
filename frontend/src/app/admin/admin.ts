@@ -17,6 +17,7 @@ export class Admin implements OnInit {
   reservas: any[] = [];
   pagos: any[] = [];
   proyectos: any[] = [];
+  gruposPagos: { nombre: string; correo: string; pagos: any[]; total: number }[] = [];
 
   estadosReserva = ['pendiente', 'confirmada', 'cancelada', 'completada'];
   estadosPago = ['pendiente', 'completado', 'rechazado'];
@@ -38,13 +39,32 @@ export class Admin implements OnInit {
       error: () => this.error = 'Error al cargar reservas'
     });
     this.http.get<any[]>(`${API}/pagos`).subscribe({
-      next: res => this.pagos = res,
+      next: res => { this.pagos = res; this.calcularGrupos(); },
       error: () => this.error = 'Error al cargar pagos'
     });
     this.http.get<any[]>(`${API}/proyectos`).subscribe({
       next: res => this.proyectos = res,
       error: () => this.error = 'Error al cargar proyectos'
     });
+  }
+
+  private calcularGrupos() {
+    const mapa = new Map<string, { nombre: string; correo: string; pagos: any[]; total: number }>();
+    for (const p of this.pagos) {
+      const id = p.clienteId?._id || p.clienteId || 'sin-cliente';
+      if (!mapa.has(id)) {
+        mapa.set(id, {
+          nombre: p.clienteId?.nombre || 'Sin nombre',
+          correo: p.clienteId?.correo || '—',
+          pagos: [],
+          total: 0
+        });
+      }
+      const entry = mapa.get(id)!;
+      entry.pagos.push(p);
+      if (p.estado === 'completado') entry.total += p.monto;
+    }
+    this.gruposPagos = Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }
 
   cambiarEstadoReserva(id: string, estado: string) {
@@ -100,25 +120,6 @@ export class Admin implements OnInit {
 
   totalPagos(): number {
     return this.pagos.filter(p => p.estado === 'completado').reduce((s, p) => s + p.monto, 0);
-  }
-
-  pagosPorCliente(): { nombre: string; correo: string; pagos: any[]; total: number }[] {
-    const mapa = new Map<string, { nombre: string; correo: string; pagos: any[]; total: number }>();
-    for (const p of this.pagos) {
-      const id = p.clienteId?._id || p.clienteId || 'sin-cliente';
-      if (!mapa.has(id)) {
-        mapa.set(id, {
-          nombre: p.clienteId?.nombre || 'Sin nombre',
-          correo: p.clienteId?.correo || '—',
-          pagos: [],
-          total: 0
-        });
-      }
-      const entry = mapa.get(id)!;
-      entry.pagos.push(p);
-      if (p.estado === 'completado') entry.total += p.monto;
-    }
-    return Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }
 
   estadoColorReserva(estado: string): string {

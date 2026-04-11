@@ -67,7 +67,7 @@
   <div *ngIf="seccion === 'pagos'">
     <p *ngIf="pagos.length === 0">No hay pagos registrados.</p>
 
-    <div class="cliente-pagos-bloque" *ngFor="let grupo of pagosPorCliente()">
+    <div class="cliente-pagos-bloque" *ngFor="let grupo of gruposPagos">
       <!-- Encabezado del cliente -->
       <div class="cliente-pagos-header">
         <div class="cliente-pagos-nombre">{{ grupo.nombre }}</div>
