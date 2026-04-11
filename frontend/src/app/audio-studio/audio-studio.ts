@@ -31,6 +31,10 @@ interface LiveChain {
 export class AudioStudio implements OnInit, OnDestroy {
 
   showPianoRollEditor = false;
+  showRecorder    = true;
+  showKaraoke     = false;
+  showMixerPanel  = true;
+
   pistas: Pista[] = [];
   playerSrc = '';
   reproduciendo = false;
