@@ -63,27 +63,37 @@
     <p *ngIf="reservas.length === 0">No hay reservas.</p>
   </div>
 
-  <!-- TABLA PAGOS -->
+  <!-- HISTORIAL DE PAGOS POR CLIENTE -->
   <div *ngIf="seccion === 'pagos'">
-    <div class="tabla-item" *ngFor="let p of pagos">
-      <div class="tabla-info">
-        <div class="tabla-principal">${{ p.monto | number:'1.2-2' }} — {{ p.metodo }}</div>
-        <div class="tabla-sub">
-          {{ p.clienteId?.nombre || 'Sin cliente' }}
-          <span *ngIf="p.reservaId"> — Reserva: {{ p.reservaId.servicio }}</span>
-          <span *ngIf="p.proyectoId"> — Proyecto: {{ p.proyectoId.titulo }}</span>
-        </div>
-        <div class="tabla-sub" *ngIf="p.referencia">Ref: {{ p.referencia }}</div>
-        <div class="tabla-sub">{{ p.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+    <p *ngIf="pagos.length === 0">No hay pagos registrados.</p>
+
+    <div class="cliente-pagos-bloque" *ngFor="let grupo of pagosPorCliente()">
+      <!-- Encabezado del cliente -->
+      <div class="cliente-pagos-header">
+        <div class="cliente-pagos-nombre">{{ grupo.nombre }}</div>
+        <div class="cliente-pagos-correo">{{ grupo.correo }}</div>
+        <div class="cliente-pagos-total">Total pagado: <strong>${{ grupo.total | number:'1.2-2' }}</strong></div>
       </div>
-      <div class="tabla-acciones">
-        <select [ngModel]="p.estado" (ngModelChange)="cambiarEstadoPago(p._id, $event)">
-          <option *ngFor="let e of estadosPago" [value]="e">{{ e }}</option>
-        </select>
-        <span class="badge" [style.background]="estadoColorPago(p.estado)">{{ p.estado }}</span>
+
+      <!-- Pagos del cliente -->
+      <div class="tabla-item" *ngFor="let p of grupo.pagos">
+        <div class="tabla-info">
+          <div class="tabla-principal">${{ p.monto | number:'1.2-2' }} — {{ p.metodo }}</div>
+          <div class="tabla-sub">
+            {{ p.createdAt | date:'dd/MM/yyyy HH:mm' }}
+            <span *ngIf="p.reservaId"> · Reserva: {{ p.reservaId.servicio }}</span>
+            <span *ngIf="p.proyectoId"> · Proyecto: {{ p.proyectoId.titulo }}</span>
+          </div>
+          <div class="tabla-sub" *ngIf="p.referencia">Ref: {{ p.referencia }}</div>
+        </div>
+        <div class="tabla-acciones">
+          <select [ngModel]="p.estado" (ngModelChange)="cambiarEstadoPago(p._id, $event)">
+            <option *ngFor="let e of estadosPago" [value]="e">{{ e }}</option>
+          </select>
+          <span class="badge" [style.background]="estadoColorPago(p.estado)">{{ p.estado }}</span>
+        </div>
       </div>
     </div>
-    <p *ngIf="pagos.length === 0">No hay pagos.</p>
   </div>
 
   <!-- TABLA PROYECTOS -->

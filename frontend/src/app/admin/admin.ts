@@ -102,6 +102,25 @@ export class Admin implements OnInit {
     return this.pagos.filter(p => p.estado === 'completado').reduce((s, p) => s + p.monto, 0);
   }
 
+  pagosPorCliente(): { nombre: string; correo: string; pagos: any[]; total: number }[] {
+    const mapa = new Map<string, { nombre: string; correo: string; pagos: any[]; total: number }>();
+    for (const p of this.pagos) {
+      const id = p.clienteId?._id || p.clienteId || 'sin-cliente';
+      if (!mapa.has(id)) {
+        mapa.set(id, {
+          nombre: p.clienteId?.nombre || 'Sin nombre',
+          correo: p.clienteId?.correo || '—',
+          pagos: [],
+          total: 0
+        });
+      }
+      const entry = mapa.get(id)!;
+      entry.pagos.push(p);
+      if (p.estado === 'completado') entry.total += p.monto;
+    }
+    return Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }
+
   estadoColorReserva(estado: string): string {
     const c: any = { pendiente: '#f59e0b', confirmada: '#3b82f6', cancelada: '#ef4444', completada: '#22c55e' };
     return c[estado] || '#94a3b8';
