@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, RouteReuseStrategy } from '@angular/router';
 import { tap } from 'rxjs/operators';
+import { AppRouteReuseStrategy } from '../route-reuse.strategy';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
@@ -10,7 +11,11 @@ export class AuthService {
 
   private activityRef: { start: () => void; stop: () => void } | null = null;
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private reuseStrategy: RouteReuseStrategy
+  ) {}
 
   setActivity(svc: { start: () => void; stop: () => void }) {
     this.activityRef = svc;
@@ -30,6 +35,7 @@ export class AuthService {
 
   logout() {
     this.activityRef?.stop();
+    (this.reuseStrategy as AppRouteReuseStrategy).clearAll();
     localStorage.clear();
     this.router.navigate(['/']);
   }
