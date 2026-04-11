@@ -17,7 +17,6 @@ export class Pagos implements OnInit {
   proyectos: any[] = [];
 
   mostrarFormulario = false;
-  cargando = false;
   error = '';
   exito = '';
 
@@ -38,19 +37,16 @@ export class Pagos implements OnInit {
   }
 
   cargarPagos() {
-    this.cargando = true;
     this.error = '';
     const userId = this.auth.getUserId();
     this.http.get<any[]>(`${API}/pagos/cliente/${userId}`).subscribe({
       next: res => {
-        this.cargando = false;
         this.pagos = Array.isArray(res) ? res.sort((a: any, b: any) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         ) : [];
       },
       error: () => {
         this.error = 'Error al cargar pagos';
-        this.cargando = false;
       }
     });
   }
