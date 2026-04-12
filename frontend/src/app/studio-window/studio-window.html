@@ -1,0 +1,32 @@
+<div class="sw-window"
+  [style.left.px]="x"
+  [style.top.px]="y"
+  [style.width.px]="w"
+  [style.height.px]="minimized ? TITLE_H : h"
+  [style.z-index]="zIndex"
+  [class.sw-hidden]="!visible"
+  (mousedown)="onWindowClick()">
+
+  <!-- Title bar -->
+  <div class="sw-titlebar" (mousedown)="startDrag($event)">
+    <span class="sw-icon">{{ icon }}</span>
+    <span class="sw-title">{{ title }}</span>
+    <div class="sw-actions">
+      <button class="sw-btn sw-min-btn"
+        (click)="toggleMinimize($event)"
+        [title]="minimized ? 'Restaurar' : 'Minimizar'">
+        {{ minimized ? '▲' : '▼' }}
+      </button>
+      <button class="sw-btn sw-close-btn" (click)="onClose($event)" title="Cerrar">✕</button>
+    </div>
+  </div>
+
+  <!-- Content — kept in DOM to preserve component state -->
+  <div class="sw-body" [class.sw-body-hidden]="minimized">
+    <ng-content></ng-content>
+  </div>
+
+  <!-- Resize grip -->
+  <div class="sw-resize-br" *ngIf="!minimized" (mousedown)="startResize($event)"></div>
+
+</div>

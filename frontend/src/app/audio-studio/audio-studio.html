@@ -1,8 +1,7 @@
 <div class="daw-root">
 
-  <!-- ═══════════════════════════ TOOLBAR ═══════════════════════════ -->
+  <!-- ════════════════ TOOLBAR ════════════════ -->
   <div class="daw-toolbar">
-
     <div class="toolbar-brand">
       <span class="daw-logo">🎵 Studio</span>
       <button class="btn-back-daw" routerLink="/dashboard">←</button>
@@ -11,89 +10,71 @@
     <div class="toolbar-transport">
       <button class="t-btn t-play"
         (click)="mezclarYReproducir()"
-        [disabled]="reproduciendo || !hasClips"
-        title="Reproducir">▶</button>
+        [disabled]="reproduciendo || !hasClips" title="Reproducir">▶</button>
       <button class="t-btn t-stop"
         (click)="detenerTodas()"
-        [disabled]="!reproduciendo"
-        title="Detener">⏹</button>
+        [disabled]="!reproduciendo" title="Detener">⏹</button>
+
       <div class="t-speed">
         <span class="t-speed-label">⚡</span>
         <input type="range" min="0.25" max="3" step="0.05"
           [(ngModel)]="velocidad" (input)="updateLiveVelocidad()">
         <span class="t-speed-val">{{ velocidad.toFixed(2) }}x</span>
-        <button class="t-btn-reset" (click)="velocidad=1;updateLiveVelocidad()" title="Resetear">↺</button>
+        <button class="t-btn-reset" (click)="velocidad=1;updateLiveVelocidad()" title="Reset">↺</button>
       </div>
+
       <span class="t-status" *ngIf="mensajeExport">{{ mensajeExport }}</span>
-      <button class="t-btn t-export"
-        (click)="exportarMezcla()"
+
+      <button class="t-btn t-export" (click)="exportarMezcla()"
         [disabled]="exportando || reproduciendo || !hasClips">
         {{ exportando ? '⏳' : '💾' }} Exportar
       </button>
     </div>
-
   </div>
 
-  <!-- ═══════════════════════════ DAW BODY ═══════════════════════════ -->
+  <!-- ════════════════ BODY ════════════════ -->
   <div class="daw-body">
 
-    <!-- ─── SIDEBAR ─── -->
+    <!-- ── SIDEBAR (launcher) ── -->
     <aside class="daw-sidebar">
 
-      <!-- Tool Navigation -->
-      <div class="sb-tools">
-        <div class="sb-tools-title">Herramientas</div>
+      <!-- Tool buttons -->
+      <div class="sb-launcher">
+        <div class="sb-launcher-title">Herramientas</div>
 
-        <button class="sb-tool-btn" [class.active]="showLibraryPanel"
-          (click)="showLibraryPanel = !showLibraryPanel">
-          <span class="sb-tool-icon">📁</span> Archivos
+        <button class="sb-launcher-btn" [class.active]="wins['archivos']"
+          (click)="toggleWindow('archivos')" title="Subir audio">
+          <span>📁</span> Archivos
         </button>
-        <button class="sb-tool-btn" [class.active]="showPreviewPanel"
-          (click)="showPreviewPanel = !showPreviewPanel">
-          <span class="sb-tool-icon">🎧</span> Preview
+        <button class="sb-launcher-btn" [class.active]="wins['preview']"
+          (click)="toggleWindow('preview')" title="Preview de audio">
+          <span>🎧</span> Preview
         </button>
-        <button class="sb-tool-btn" [class.active]="showRecorder"
-          (click)="showRecorder = !showRecorder">
-          <span class="sb-tool-icon">🎤</span> Grabador
+        <button class="sb-launcher-btn" [class.active]="wins['grabador']"
+          (click)="toggleWindow('grabador')" title="Grabador de voz">
+          <span>🎤</span> Grabador
         </button>
-        <button class="sb-tool-btn" [class.active]="showKaraoke"
-          (click)="showKaraoke = !showKaraoke">
-          <span class="sb-tool-icon">🎙</span> Karaoke
+        <button class="sb-launcher-btn" [class.active]="wins['karaoke']"
+          (click)="toggleWindow('karaoke')" title="Karaoke en vivo">
+          <span>🎙</span> Karaoke
         </button>
-        <button class="sb-tool-btn" [class.active]="showPianoAdvanced"
-          (click)="showPianoAdvanced = !showPianoAdvanced">
-          <span class="sb-tool-icon">🎹</span> Piano Avanzado
+        <button class="sb-launcher-btn" [class.active]="wins['pianoAdv']"
+          (click)="toggleWindow('pianoAdv')" title="Piano Roll avanzado">
+          <span>🎹</span> Piano Pro
         </button>
-        <button class="sb-tool-btn" [class.active]="showPianoSimple"
-          (click)="showPianoSimple = !showPianoSimple">
-          <span class="sb-tool-icon">🎵</span> Piano Simple
+        <button class="sb-launcher-btn" [class.active]="wins['pianoSim']"
+          (click)="toggleWindow('pianoSim')" title="Piano Roll simple">
+          <span>🎵</span> Piano Simple
         </button>
-        <button class="sb-tool-btn" [class.active]="showMixerPanel"
-          (click)="showMixerPanel = !showMixerPanel">
-          <span class="sb-tool-icon">🎚</span> Mixer
+        <button class="sb-launcher-btn" [class.active]="wins['mixer']"
+          (click)="toggleWindow('mixer')" title="Mixer de pistas">
+          <span>🎚</span> Mixer
         </button>
       </div>
 
-      <div class="sb-divider"></div>
+      <div class="sb-sep"></div>
 
-      <!-- Upload -->
-      <div class="sb-section" *ngIf="showLibraryPanel">
-        <div class="sb-title">📁 Archivos</div>
-        <label class="sb-upload">
-          <input type="file" accept="audio/*"
-            (change)="subirArchivo($event)" [disabled]="subiendoArchivo">
-          <span>{{ subiendoArchivo ? 'Subiendo…' : '+ Subir audio' }}</span>
-        </label>
-        <p class="sb-error" *ngIf="errorArchivo">{{ errorArchivo }}</p>
-      </div>
-
-      <!-- Mini player -->
-      <div class="sb-section" *ngIf="showPreviewPanel">
-        <div class="sb-title">🎧 Previa</div>
-        <app-audio-player [src]="playerSrc"></app-audio-player>
-      </div>
-
-      <!-- Mezclas -->
+      <!-- Mezclas guardadas -->
       <div class="sb-section sb-mezclas">
         <div class="sb-title">
           📂 Mezclas
@@ -111,21 +92,21 @@
               <button class="btn-icon btn-icon-del" (click)="eliminarMezcla(m._id)" title="Eliminar">✕</button>
             </div>
           </div>
-          <p class="sb-empty" *ngIf="mezclas.length === 0">Sin mezclas guardadas</p>
+          <p class="sb-empty" *ngIf="mezclas.length === 0">Sin mezclas</p>
         </div>
       </div>
 
       <!-- Track count -->
       <div class="sb-footer">
-        <span>{{ pistas.filter(p => p.activa && p.segmentos.length > 0).length }} / {{ pistas.filter(p => p.segmentos.length > 0).length }} con clips</span>
+        {{ pistas.filter(p => p.segmentos.length > 0).length }} pistas con clips
       </div>
 
     </aside>
 
-    <!-- ─── WORKSPACE ─── -->
+    <!-- ── WORKSPACE (timeline + floating windows) ── -->
     <div class="daw-workspace">
 
-      <!-- TIMELINE (always visible) -->
+      <!-- TIMELINE — always fills workspace, always visible -->
       <div class="daw-timeline-area">
         <app-audio-timeline
           [pistas]="pistas"
@@ -135,67 +116,67 @@
           (seekTo)="onSeekTo($event)">
         </app-audio-timeline>
         <div class="daw-empty-hint" *ngIf="!hasClips">
-          Sube un audio, graba tu voz o usa el Piano Roll — los clips aparecen sobre las pistas
+          Usa las herramientas del sidebar para agregar clips al timeline
         </div>
       </div>
 
-      <!-- ══════ COLLAPSIBLE PANELS BELOW ══════ -->
+      <!-- ══════ FLOATING WINDOWS ══════ -->
 
-      <!-- PIANO AVANZADO (full-width, resizable) -->
-      <div class="daw-panel-block" *ngIf="showPianoAdvanced" [style.height.px]="pianoAdvH">
-        <div class="panel-resize-handle" (mousedown)="onResizeStart('pianoAdv', pianoAdvH, $event)"
-          title="Arrastrar para redimensionar"></div>
-        <div class="panel-header">
-          <span>🎹 Piano Roll Avanzado</span>
-          <button class="panel-close" (click)="showPianoAdvanced = false">✕</button>
+      <!-- 📁 ARCHIVOS -->
+      <app-studio-window
+        title="Archivos — Subir Audio" icon="📁"
+        [initialX]="30" [initialY]="30" [initialW]="320" [initialH]="200"
+        [minW]="260" [minH]="160"
+        [visible]="wins['archivos']" [zIndex]="wZ['archivos']"
+        (focused)="focusWindow('archivos')"
+        (closed)="closeWindow('archivos')">
+        <div class="win-inner">
+          <label class="sb-upload">
+            <input type="file" accept="audio/*"
+              (change)="subirArchivo($event)" [disabled]="subiendoArchivo">
+            <span>{{ subiendoArchivo ? 'Subiendo…' : '+ Subir archivo de audio' }}</span>
+          </label>
+          <p class="sb-error" *ngIf="errorArchivo">{{ errorArchivo }}</p>
+          <p class="win-hint">El audio se agrega automáticamente al timeline.</p>
         </div>
-        <div class="panel-content">
-          <app-audio-piano-roll
-            (addTrack)="onPianoTrack($event)">
-          </app-audio-piano-roll>
-        </div>
-      </div>
+      </app-studio-window>
 
-      <!-- PIANO SIMPLE (full-width, resizable) -->
-      <div class="daw-panel-block" *ngIf="showPianoSimple" [style.height.px]="pianoSimH">
-        <div class="panel-resize-handle" (mousedown)="onResizeStart('pianoSim', pianoSimH, $event)"
-          title="Arrastrar para redimensionar"></div>
-        <div class="panel-header">
-          <span>🎵 Piano Roll Simple</span>
-          <button class="panel-close" (click)="showPianoSimple = false">✕</button>
+      <!-- 🎧 PREVIEW -->
+      <app-studio-window
+        title="Preview de Audio" icon="🎧"
+        [initialX]="370" [initialY]="30" [initialW]="320" [initialH]="160"
+        [minW]="260" [minH]="120"
+        [visible]="wins['preview']" [zIndex]="wZ['preview']"
+        (focused)="focusWindow('preview')"
+        (closed)="closeWindow('preview')">
+        <div class="win-inner">
+          <app-audio-player [src]="playerSrc"></app-audio-player>
         </div>
-        <div class="panel-content">
-          <app-piano-roll
-            [playheadTime]="playheadTime"
-            (addTrack)="onPianoTrack($event)"
-            (seekTo)="onSeekTo($event)">
-          </app-piano-roll>
-        </div>
-      </div>
+      </app-studio-window>
 
-      <!-- PANELS ROW (Grabador + Karaoke side by side, resizable) -->
-      <div class="daw-panels-row" *ngIf="showRecorder || showKaraoke"
-        [style.height.px]="recorderH">
-        <div class="panel-resize-handle" (mousedown)="onResizeStart('recorder', recorderH, $event)"
-          title="Arrastrar para redimensionar"></div>
-        <div class="daw-panels-inner">
-
-        <!-- GRABADOR PANEL -->
-        <div class="daw-panel" *ngIf="showRecorder">
-          <div class="panel-header">
-            <span>🎤 Grabador de Voz</span>
-            <button class="panel-close" (click)="showRecorder = false">✕</button>
-          </div>
-          <p class="panel-hint">Cada grabación se agrega como nueva pista al timeline.</p>
+      <!-- 🎤 GRABADOR -->
+      <app-studio-window
+        title="Grabador de Voz" icon="🎤"
+        [initialX]="30" [initialY]="30" [initialW]="400" [initialH]="300"
+        [minW]="300" [minH]="220"
+        [visible]="wins['grabador']" [zIndex]="wZ['grabador']"
+        (focused)="focusWindow('grabador')"
+        (closed)="closeWindow('grabador')">
+        <div class="win-inner">
+          <p class="win-hint">Cada grabación se agrega como nuevo clip al timeline.</p>
           <app-audio-recorder (audioUrl)="onAudioUrl($event)"></app-audio-recorder>
         </div>
+      </app-studio-window>
 
-        <!-- KARAOKE PANEL -->
-        <div class="daw-panel daw-panel-karaoke" *ngIf="showKaraoke">
-          <div class="panel-header">
-            <span>🎙 Karaoke — Voz en vivo</span>
-            <button class="panel-close" (click)="showKaraoke = false">✕</button>
-          </div>
+      <!-- 🎙 KARAOKE -->
+      <app-studio-window
+        title="Karaoke — Voz en vivo" icon="🎙"
+        [initialX]="460" [initialY]="30" [initialW]="440" [initialH]="320"
+        [minW]="340" [minH]="220"
+        [visible]="wins['karaoke']" [zIndex]="wZ['karaoke']"
+        (focused)="focusWindow('karaoke')"
+        (closed)="closeWindow('karaoke')">
+        <div class="win-inner win-karaoke">
           <div class="karaoke-top">
             <button *ngIf="!karaokeActivo" class="btn-karaoke-start" (click)="iniciarKaraoke()">
               🎙 Abrir micrófono
@@ -204,18 +185,12 @@
               ⏹ Cerrar mic
             </button>
             <ng-container *ngIf="karaokeActivo">
-              <button *ngIf="!karaokeGrabando" class="btn-karaoke-rec" (click)="iniciarGrabacionKaraoke()">
-                ⏺ Grabar
-              </button>
-              <button *ngIf="karaokeGrabando" class="btn-karaoke-rec-stop" (click)="detenerGrabacionKaraoke()">
-                ⏹ Stop
-              </button>
+              <button *ngIf="!karaokeGrabando" class="btn-karaoke-rec" (click)="iniciarGrabacionKaraoke()">⏺ Grabar</button>
+              <button *ngIf="karaokeGrabando" class="btn-karaoke-rec-stop" (click)="detenerGrabacionKaraoke()">⏹ Stop</button>
               <span class="karaoke-live-badge">🔴 EN VIVO</span>
               <span class="karaoke-rec-badge" *ngIf="karaokeGrabando">⏺ REC</span>
             </ng-container>
-            <button *ngIf="karaokeUrlLocal && !karaokeGrabando" class="btn-karaoke-dl" (click)="descargarKaraoke()">
-              ⬇ Guardar
-            </button>
+            <button *ngIf="karaokeUrlLocal && !karaokeGrabando" class="btn-karaoke-dl" (click)="descargarKaraoke()">⬇ Guardar</button>
             <span class="karaoke-error" *ngIf="karaokeError">{{ karaokeError }}</span>
           </div>
           <div class="karaoke-efectos" *ngIf="karaokeActivo">
@@ -227,76 +202,99 @@
             <div class="efecto-row"><label>Tono</label><input type="range" min="0.5" max="2" step="0.05" [(ngModel)]="karaokeEfectos.tono" (input)="updateKaraokeChain()"><span>{{ karaokeEfectos.tono.toFixed(2) }}x</span></div>
           </div>
         </div>
-        </div><!-- /daw-panels-inner -->
+      </app-studio-window>
 
-      </div>
+      <!-- 🎹 PIANO PRO (AudioPianoRoll) -->
+      <app-studio-window
+        title="Piano Roll Pro" icon="🎹"
+        [initialX]="30" [initialY]="20" [initialW]="820" [initialH]="440"
+        [minW]="500" [minH]="300"
+        [visible]="wins['pianoAdv']" [zIndex]="wZ['pianoAdv']"
+        (focused)="focusWindow('pianoAdv')"
+        (closed)="closeWindow('pianoAdv')">
+        <app-audio-piano-roll
+          (addTrack)="onPianoTrack($event)">
+        </app-audio-piano-roll>
+      </app-studio-window>
 
-      <!-- MIXER PANEL (horizontal channels, resizable) -->
-      <div class="daw-mixer" *ngIf="showMixerPanel && hasClips"
-        [style.height.px]="mixerH">
-        <div class="panel-resize-handle" (mousedown)="onResizeStart('mixer', mixerH, $event)"
-          title="Arrastrar para redimensionar"></div>
-        <div class="panel-header">
-          <span>🎚 Mixer — {{ pistas.filter(p => p.segmentos.length > 0).length }} pista{{ pistas.filter(p => p.segmentos.length > 0).length === 1 ? '' : 's' }}</span>
-          <span class="mixer-active-hint">{{ pistas.filter(p => p.activa && p.segmentos.length > 0).length }} activas</span>
-        </div>
-        <div class="mixer-channels">
-          <ng-container *ngFor="let p of pistas; let i = index">
-          <div class="mixer-channel"
-            *ngIf="p.segmentos.length > 0"
-            [class.muted]="!p.activa"
-            [style.border-top-color]="p.color">
+      <!-- 🎵 PIANO SIMPLE (PianoRoll) -->
+      <app-studio-window
+        title="Piano Roll Simple" icon="🎵"
+        [initialX]="60" [initialY]="40" [initialW]="760" [initialH]="400"
+        [minW]="460" [minH]="260"
+        [visible]="wins['pianoSim']" [zIndex]="wZ['pianoSim']"
+        (focused)="focusWindow('pianoSim')"
+        (closed)="closeWindow('pianoSim')">
+        <app-piano-roll
+          [playheadTime]="playheadTime"
+          (addTrack)="onPianoTrack($event)"
+          (seekTo)="onSeekTo($event)">
+        </app-piano-roll>
+      </app-studio-window>
 
-            <div class="channel-name" title="{{ p.nombre }}">{{ p.nombre }}</div>
-
-            <div class="channel-btns">
-              <button class="btn-icon" (click)="previsualizarPistaObj(p)" title="Preview">👁</button>
-              <button class="btn-icon" [class.btn-muted]="!p.activa" (click)="togglePista(p)">
-                {{ p.activa ? '🔊' : '🔇' }}
-              </button>
-              <button class="btn-icon btn-icon-dup" (click)="duplicarPista(p)" title="Duplicar">📋</button>
-              <button class="btn-icon btn-icon-del" (click)="eliminarPista(i)" title="Eliminar">✕</button>
-            </div>
-
-            <div class="live-dot" *ngIf="reproduciendo && p.activa"></div>
-
-            <div class="channel-faders">
-              <div class="fader-col">
-                <span class="fader-label">Vol</span>
-                <input class="fader-v" type="range" min="0" max="2" step="0.05"
-                  [(ngModel)]="p.efectos.volumen" (input)="updateLiveVolumen(i,p.efectos)">
-                <span class="fader-val">{{ (p.efectos.volumen*100).toFixed(0) }}</span>
+      <!-- 🎚 MIXER -->
+      <app-studio-window
+        title="Mixer" icon="🎚"
+        [initialX]="30" [initialY]="30" [initialW]="860" [initialH]="240"
+        [minW]="400" [minH]="160"
+        [visible]="wins['mixer']" [zIndex]="wZ['mixer']"
+        (focused)="focusWindow('mixer')"
+        (closed)="closeWindow('mixer')">
+        <div class="win-mixer-body">
+          <div *ngIf="!hasClips" class="win-empty-msg">No hay pistas con clips aún.</div>
+          <div class="mixer-channels" *ngIf="hasClips">
+            <ng-container *ngFor="let p of pistas; let i = index">
+              <div class="mixer-channel"
+                *ngIf="p.segmentos.length > 0"
+                [class.muted]="!p.activa"
+                [style.border-top-color]="p.color">
+                <div class="channel-name" title="{{ p.nombre }}">{{ p.nombre }}</div>
+                <div class="channel-btns">
+                  <button class="btn-icon" (click)="previsualizarPistaObj(p)" title="Preview">👁</button>
+                  <button class="btn-icon" [class.btn-muted]="!p.activa" (click)="togglePista(p)">
+                    {{ p.activa ? '🔊' : '🔇' }}
+                  </button>
+                  <button class="btn-icon btn-icon-dup" (click)="duplicarPista(p)" title="Duplicar">📋</button>
+                  <button class="btn-icon btn-icon-del" (click)="eliminarPista(i)" title="Eliminar">✕</button>
+                </div>
+                <div class="live-dot" *ngIf="reproduciendo && p.activa"></div>
+                <div class="channel-faders">
+                  <div class="fader-col">
+                    <span class="fader-label">Vol</span>
+                    <input class="fader-v" type="range" min="0" max="2" step="0.05"
+                      [(ngModel)]="p.efectos.volumen" (input)="updateLiveVolumen(i,p.efectos)">
+                    <span class="fader-val">{{ (p.efectos.volumen*100).toFixed(0) }}</span>
+                  </div>
+                  <div class="fader-col">
+                    <span class="fader-label">Grav</span>
+                    <input class="fader-v" type="range" min="-12" max="12" step="1"
+                      [(ngModel)]="p.efectos.graves" (input)="updateLiveGraves(i,p.efectos)">
+                    <span class="fader-val">{{ p.efectos.graves }}</span>
+                  </div>
+                  <div class="fader-col">
+                    <span class="fader-label">Agud</span>
+                    <input class="fader-v" type="range" min="-12" max="12" step="1"
+                      [(ngModel)]="p.efectos.agudos" (input)="updateLiveAgudos(i,p.efectos)">
+                    <span class="fader-val">{{ p.efectos.agudos }}</span>
+                  </div>
+                  <div class="fader-col">
+                    <span class="fader-label">Eco</span>
+                    <input class="fader-v" type="range" min="0" max="1" step="0.05"
+                      [(ngModel)]="p.efectos.eco" (input)="updateLiveEco(i,p.efectos)">
+                    <span class="fader-val">{{ (p.efectos.eco*100).toFixed(0) }}</span>
+                  </div>
+                  <div class="fader-col">
+                    <span class="fader-label">Rev</span>
+                    <input class="fader-v" type="range" min="0" max="1" step="0.05"
+                      [(ngModel)]="p.efectos.reverb" (input)="updateLiveReverb(i,p.efectos)">
+                    <span class="fader-val">{{ (p.efectos.reverb*100).toFixed(0) }}</span>
+                  </div>
+                </div>
               </div>
-              <div class="fader-col">
-                <span class="fader-label">Grav</span>
-                <input class="fader-v" type="range" min="-12" max="12" step="1"
-                  [(ngModel)]="p.efectos.graves" (input)="updateLiveGraves(i,p.efectos)">
-                <span class="fader-val">{{ p.efectos.graves }}</span>
-              </div>
-              <div class="fader-col">
-                <span class="fader-label">Agud</span>
-                <input class="fader-v" type="range" min="-12" max="12" step="1"
-                  [(ngModel)]="p.efectos.agudos" (input)="updateLiveAgudos(i,p.efectos)">
-                <span class="fader-val">{{ p.efectos.agudos }}</span>
-              </div>
-              <div class="fader-col">
-                <span class="fader-label">Eco</span>
-                <input class="fader-v" type="range" min="0" max="1" step="0.05"
-                  [(ngModel)]="p.efectos.eco" (input)="updateLiveEco(i,p.efectos)">
-                <span class="fader-val">{{ (p.efectos.eco*100).toFixed(0) }}</span>
-              </div>
-              <div class="fader-col">
-                <span class="fader-label">Rev</span>
-                <input class="fader-v" type="range" min="0" max="1" step="0.05"
-                  [(ngModel)]="p.efectos.reverb" (input)="updateLiveReverb(i,p.efectos)">
-                <span class="fader-val">{{ (p.efectos.reverb*100).toFixed(0) }}</span>
-              </div>
-            </div>
-
+            </ng-container>
           </div>
-          </ng-container>
         </div>
-      </div>
+      </app-studio-window>
 
     </div><!-- /daw-workspace -->
   </div><!-- /daw-body -->

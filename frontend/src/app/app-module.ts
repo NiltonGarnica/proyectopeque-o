@@ -24,6 +24,7 @@ import { Terminal } from './terminal/terminal';
 import { Nav } from './nav/nav';
 import { Particles } from './particles/particles';
 import { AudioPianoRoll } from './audio-piano-roll/audio-piano-roll';
+import { StudioWindow } from './studio-window/studio-window';
 
 @NgModule({
   declarations: [
@@ -31,6 +32,7 @@ import { AudioPianoRoll } from './audio-piano-roll/audio-piano-roll';
     Nav,
     Particles,
     AudioPianoRoll,
+    StudioWindow,
     LoginComponent,
     DashboardComponent,
     Register,

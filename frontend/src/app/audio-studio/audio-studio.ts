@@ -30,40 +30,40 @@ interface LiveChain {
 })
 export class AudioStudio implements OnInit, OnDestroy {
 
-  showPianoAdvanced  = false;   // app-audio-piano-roll (canvas, multi-instrument)
-  showPianoSimple    = false;   // app-piano-roll (DOM, Salamander only)
-  showRecorder       = false;
-  showKaraoke        = false;
-  showMixerPanel     = false;
-  showPreviewPanel   = true;
-  showLibraryPanel   = true;
+  // ── Floating window visibility ──────────────
+  wins: Record<string, boolean> = {
+    archivos: false,
+    preview:  false,
+    grabador: false,
+    karaoke:  false,
+    pianoAdv: false,
+    pianoSim: false,
+    mixer:    false,
+  };
 
-  // Panel heights (px) — draggable
-  timelineH  = 0;   // 0 = flex:1 (fills remaining)
-  pianoAdvH  = 340;
-  pianoSimH  = 320;
-  recorderH  = 260;
-  karaokeH   = 300;
-  mixerH     = 190;
+  // ── Z-index per window (managed via focusWindow) ──
+  private _zCounter = 200;
+  wZ: Record<string, number> = {
+    archivos: 200, preview: 201, grabador: 202, karaoke: 203,
+    pianoAdv: 204, pianoSim: 205, mixer: 206,
+  };
 
-  private _resizing: { panel: string; startY: number; startH: number } | null = null;
+  toggleWindow(name: string) {
+    this.wins[name] = !this.wins[name];
+    if (this.wins[name]) this.focusWindow(name);
+  }
 
-  onResizeStart(panel: string, startH: number, e: MouseEvent) {
-    e.preventDefault();
-    this._resizing = { panel, startY: e.clientY, startH };
-    const move = (ev: MouseEvent) => {
-      if (!this._resizing) return;
-      const delta = this._resizing.startY - ev.clientY;
-      const h = Math.max(140, this._resizing.startH + delta);
-      (this as any)[panel + 'H'] = h;
-    };
-    const up = () => {
-      this._resizing = null;
-      window.removeEventListener('mousemove', move);
-      window.removeEventListener('mouseup', up);
-    };
-    window.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', up);
+  openWindow(name: string) {
+    this.wins[name] = true;
+    this.focusWindow(name);
+  }
+
+  focusWindow(name: string) {
+    this.wZ[name] = ++this._zCounter;
+  }
+
+  closeWindow(name: string) {
+    this.wins[name] = false;
   }
 
   pistas: Pista[] = [];

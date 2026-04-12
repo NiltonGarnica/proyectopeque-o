@@ -1,0 +1,116 @@
+/* ── Window shell ─────────────────────────── */
+.sw-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background: #0a1628;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(56,189,248,0.06),
+    inset 0 1px 0 rgba(56,189,248,0.08);
+  overflow: hidden;
+  min-width: 260px;
+  pointer-events: all;
+  transition: box-shadow 0.15s;
+}
+.sw-window:focus-within {
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(56,189,248,0.2);
+}
+.sw-hidden { display: none !important; }
+
+/* ── Title bar ────────────────────────────── */
+.sw-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  min-height: 36px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #0f2140 0%, #0a1628 100%);
+  border-bottom: 1px solid #1e3a5f;
+  padding: 0 8px 0 12px;
+  cursor: grab;
+  user-select: none;
+}
+.sw-titlebar:active { cursor: grabbing; }
+
+.sw-icon {
+  font-size: 0.9em;
+  flex-shrink: 0;
+}
+.sw-title {
+  flex: 1;
+  font-size: 0.8em;
+  font-weight: 700;
+  color: #7eb8e0;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Title bar buttons ─────────────────────── */
+.sw-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.sw-btn {
+  background: transparent;
+  border: 1px solid #1e3a5f;
+  border-radius: 4px;
+  color: #475569;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  font-size: 0.68em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sw-min-btn:hover  { background: #1e3a5f; border-color: #38bdf8; color: #38bdf8; }
+.sw-close-btn:hover { background: #7f1d1d; border-color: #dc2626; color: #fca5a5; }
+
+/* ── Body ─────────────────────────────────── */
+.sw-body {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sw-body::-webkit-scrollbar { width: 5px; height: 5px; }
+.sw-body::-webkit-scrollbar-track { background: #060e1c; }
+.sw-body::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 3px; }
+.sw-body-hidden { display: none !important; }
+
+/* ── Resize grip (bottom-right) ───────────── */
+.sw-resize-br {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  z-index: 1;
+}
+.sw-resize-br::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #2d4f7a;
+  border-bottom: 2px solid #2d4f7a;
+  border-radius: 1px;
+  transition: border-color 0.15s;
+}
+.sw-resize-br:hover::after { border-color: #38bdf8; }
