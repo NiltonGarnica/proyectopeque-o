@@ -29,14 +29,14 @@ export class StudioMixer implements OnChanges {
       if (this.fxChannel !== null && this.fxChannel >= this.pistas.length) {
         this.fxChannel = null;
       }
-      // If pistas reference changed while soloSet was active, clear solo state
-      // to avoid stale activa mutations on the wrong track references
-      if (!changes['pistas'].firstChange && this.soloSet.size > 0) {
+      // Only reset solo when tracks are actually added or removed (not on shallow-copy reassignments)
+      const prevLen: number = changes['pistas'].previousValue?.length ?? 0;
+      const currLen: number = this.pistas.length;
+      if (!changes['pistas'].firstChange && prevLen !== currLen && this.soloSet.size > 0) {
         this.soloSet.clear();
         this.soloBackup = [];
-        // Restore all tracks to active
         this.pistas.forEach(p => { p.activa = true; });
-        console.log('[Mixer] pistas changed — solo cleared');
+        console.log('[Mixer] track count changed — solo cleared');
       }
     }
   }

@@ -116,10 +116,7 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   onSelectPattern(id: number) {
     console.log('[Studio] onSelectPattern id=%d', id);
-    // Force piano-roll reload even if same id (in case notes drifted out of sync)
-    this.activePatternId = null;
-    // Allow one CD cycle, then set to id so ngOnChanges fires even for same pattern
-    setTimeout(() => { this.activePatternId = id; });
+    this.activePatternId = id;
     this.openWindow('pianoAdv');
   }
 
@@ -143,9 +140,8 @@ export class AudioStudio implements OnInit, OnDestroy {
         }
       }
     }
-    // Reassign both arrays so Angular CD propagates the mutation to timeline inputs
+    // Reassign patterns so timeline's getPatternNoteCount sees the update via @Input
     this.patterns = [...this.patterns];
-    this.pistas   = [...this.pistas];
   }
 
   pistas: Pista[] = [];

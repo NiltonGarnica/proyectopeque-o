@@ -203,9 +203,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy, OnChanges {
           this.drawGrid();
         }, 0);
       } else {
-        // Pattern cleared (null) — reset grid but keep notes visible
         console.log('[PianoRoll] activePattern cleared (free mode)');
-        this.drawGrid();
       }
     }
   }
