@@ -23,9 +23,24 @@
       <a routerLink="/pagos" routerLinkActive="active" (click)="close()">
         <span class="nav-icon">💳</span> Pagos
       </a>
-      <a routerLink="/studio" routerLinkActive="active" (click)="close()">
-        <span class="nav-icon">🎹</span> Estudio
-      </a>
+      <!-- Estudio expandable group -->
+      <div class="nav-group">
+        <a class="nav-parent" [class.active]="isOnStudio" [class.expanded]="studioExpanded"
+           (click)="toggleStudio($event)" href="#">
+          <span class="nav-icon">🎹</span>
+          <span class="nav-parent-label">Estudio</span>
+          <span class="nav-chevron">{{ studioExpanded ? '▲' : '▼' }}</span>
+        </a>
+        <div class="nav-submenu" [class.open]="studioExpanded">
+          <button class="nav-sub-item" (click)="openStudioTool('archivos')">📁 Archivos</button>
+          <button class="nav-sub-item" (click)="openStudioTool('preview')">🎧 Preview</button>
+          <button class="nav-sub-item" (click)="openStudioTool('grabador')">🎤 Grabador</button>
+          <button class="nav-sub-item" (click)="openStudioTool('karaoke')">🎙 Karaoke</button>
+          <button class="nav-sub-item" (click)="openStudioTool('pianoAdv')">🎹 Piano Roll</button>
+          <button class="nav-sub-item" (click)="openStudioTool('mixer')">🎚 Mixer</button>
+          <button class="nav-sub-item" (click)="openStudioTool('mezclas')">📂 Mezclas</button>
+        </div>
+      </div>
       <a routerLink="/admin" routerLinkActive="active" (click)="close()" *ngIf="auth.getRol() === 'admin'">
         <span class="nav-icon">⚙️</span> Admin
       </a>

@@ -70,30 +70,10 @@
           (click)="toggleWindow('mixer')" title="Mixer de pistas">
           <span>🎚</span> Mixer
         </button>
-      </div>
-
-      <div class="sb-sep"></div>
-
-      <!-- Mezclas guardadas -->
-      <div class="sb-section sb-mezclas">
-        <div class="sb-title">
-          📂 Mezclas
-          <span class="sb-badge">{{ mezclas.length }}</span>
-        </div>
-        <div class="sb-mezcla-list">
-          <div class="sb-mezcla-row" *ngFor="let m of mezclas">
-            <div class="sb-mezcla-info">
-              <span class="sb-mezcla-nombre" title="{{ m.nombre }}">{{ m.nombre }}</span>
-              <span class="sb-mezcla-fecha">{{ m.fecha | date:'dd/MM/yy' }}</span>
-            </div>
-            <div class="sb-mezcla-btns">
-              <button class="btn-icon" (click)="previsualizarPista(m.url)" title="Escuchar">▶</button>
-              <button class="btn-icon" (click)="descargarMezcla(m.url, m.nombre)" title="Descargar">⬇</button>
-              <button class="btn-icon btn-icon-del" (click)="eliminarMezcla(m._id)" title="Eliminar">✕</button>
-            </div>
-          </div>
-          <p class="sb-empty" *ngIf="mezclas.length === 0">Sin mezclas</p>
-        </div>
+        <button class="sb-launcher-btn" [class.active]="wins['mezclas']"
+          (click)="toggleWindow('mezclas')" title="Mezclas guardadas">
+          <span>📂</span> Mezclas
+        </button>
       </div>
 
       <!-- Track count -->
@@ -292,6 +272,36 @@
                 </div>
               </div>
             </ng-container>
+          </div>
+        </div>
+      </app-studio-window>
+
+      <!-- 📂 MEZCLAS GUARDADAS -->
+      <app-studio-window
+        title="Mezclas Guardadas" icon="📂"
+        [initialX]="100" [initialY]="60" [initialW]="400" [initialH]="320"
+        [minW]="300" [minH]="200"
+        [visible]="wins['mezclas']" [zIndex]="wZ['mezclas']"
+        (focused)="focusWindow('mezclas')"
+        (closed)="closeWindow('mezclas')">
+        <div class="win-inner win-mezclas">
+          <div class="win-mezclas-header">
+            <span class="win-mezclas-count">{{ mezclas.length }} mezcla(s)</span>
+            <button class="btn-icon" (click)="cargarMezclas()" title="Recargar">↺</button>
+          </div>
+          <div class="win-mezclas-list">
+            <div class="sb-mezcla-row" *ngFor="let m of mezclas">
+              <div class="sb-mezcla-info">
+                <span class="sb-mezcla-nombre" title="{{ m.nombre }}">{{ m.nombre }}</span>
+                <span class="sb-mezcla-fecha">{{ m.fecha | date:'dd/MM/yy' }}</span>
+              </div>
+              <div class="sb-mezcla-btns">
+                <button class="btn-icon" (click)="previsualizarPista(m.url)" title="Escuchar">▶</button>
+                <button class="btn-icon" (click)="descargarMezcla(m.url, m.nombre)" title="Descargar">⬇</button>
+                <button class="btn-icon btn-icon-del" (click)="eliminarMezcla(m._id)" title="Eliminar">✕</button>
+              </div>
+            </div>
+            <p class="win-hint" *ngIf="mezclas.length === 0">Sin mezclas guardadas.</p>
           </div>
         </div>
       </app-studio-window>

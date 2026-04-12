@@ -353,6 +353,30 @@
 @keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:0.5} }
 .karaoke-error { color:#f87171;font-size:0.8em; }
 
+/* ── Mezclas inside window ── */
+.win-mezclas {
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+.win-mezclas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8em;
+  color: #64748b;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #1e3a5f;
+}
+.win-mezclas-count { font-size: 0.9em; color: #7dd3fc; }
+.win-mezclas-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 /* ── Mixer inside window ── */
 .win-mixer-body {
   flex: 1;

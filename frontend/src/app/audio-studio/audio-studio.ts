@@ -1,6 +1,8 @@
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { StudioBusService } from '../services/studio-bus.service';
 import { Pista, EfectosPista, Segmento } from '../audio-timeline/audio-timeline';
 
 const API = 'https://proyectopeque-o.onrender.com';
@@ -39,13 +41,14 @@ export class AudioStudio implements OnInit, OnDestroy {
     pianoAdv: false,
     pianoSim: false,
     mixer:    false,
+    mezclas:  false,
   };
 
   // ── Z-index per window (managed via focusWindow) ──
   private _zCounter = 200;
   wZ: Record<string, number> = {
     archivos: 200, preview: 201, grabador: 202, karaoke: 203,
-    pianoAdv: 204, pianoSim: 205, mixer: 206,
+    pianoAdv: 204, pianoSim: 205, mixer: 206, mezclas: 207,
   };
 
   toggleWindow(name: string) {
@@ -104,10 +107,22 @@ export class AudioStudio implements OnInit, OnDestroy {
   private playheadInterval: any = null;
   private playbackStartCtxTime = 0;
   private playbackStartTimeline = 0;
+  private busSub!: Subscription;
 
-  constructor(public auth: AuthService, private zone: NgZone, private http: HttpClient) {}
+  constructor(
+    public auth: AuthService,
+    private zone: NgZone,
+    private http: HttpClient,
+    private studioBus: StudioBusService,
+  ) {}
 
-  ngOnInit() { this.initDefaultTracks(); this.cargarMezclas(); }
+  ngOnInit() {
+    this.initDefaultTracks();
+    this.cargarMezclas();
+    this.busSub = this.studioBus.open$.subscribe(name => {
+      if (name) { this.openWindow(name); this.studioBus.consume(); }
+    });
+  }
 
   private initDefaultTracks() {
     if (this.pistas.length > 0) return; // already initialised (route reuse)
@@ -142,7 +157,7 @@ export class AudioStudio implements OnInit, OnDestroy {
     return this.pistas.some(p => p.activa && p.segmentos.length > 0);
   }
 
-  ngOnDestroy() { this.detenerTodas(); this.detenerKaraoke(); }
+  ngOnDestroy() { this.detenerTodas(); this.detenerKaraoke(); this.busSub?.unsubscribe(); }
 
   private nextColor(): string { return COLORS[this.colorIdx++ % COLORS.length]; }
   private nextSegId(): number { return ++this.segCounter; }
