@@ -53,6 +53,11 @@
       </div>
       <input class="save-input" [(ngModel)]="saveName" placeholder="Nombre del proyecto">
       <button (click)="save()" [disabled]="notes.length === 0">💾 Guardar</button>
+      <button class="btn-export-track" (click)="exportToTrack()"
+        [disabled]="notes.length === 0 || isExporting || !activeInstrumentReady"
+        title="Exportar composición como audio y agregar al timeline">
+        {{ isExporting ? '⏳ Exportando…' : '🎬 → Timeline' }}
+      </button>
       <button class="btn-clear" (click)="clearAll()">🗑</button>
     </div>
   </div>

@@ -1,10 +1,10 @@
 import {
-  Component, AfterViewInit, OnDestroy,
+  Component, AfterViewInit, OnDestroy, Output, EventEmitter,
   ViewChild, ElementRef, NgZone
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
-import { Sampler, Reverb, Distortion, Filter, Chorus, Tremolo, FeedbackDelay, Phaser, Compressor, getDestination, start as toneStart, now as toneNow } from 'tone';
+import { Sampler, Reverb, Distortion, Filter, Chorus, Tremolo, FeedbackDelay, Phaser, Compressor, getDestination, start as toneStart, now as toneNow, Offline, loaded } from 'tone';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
@@ -60,6 +60,8 @@ interface SavedRoll { _id: string; nombre: string; bpm: number; notes: PianoNote
   styleUrl:    './audio-piano-roll.css',
 })
 export class AudioPianoRoll implements AfterViewInit, OnDestroy {
+
+  @Output() addTrack = new EventEmitter<{ url: string; nombre: string }>();
 
   @ViewChild('gridCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('container')  containerRef!: ElementRef<HTMLDivElement>;
@@ -892,5 +894,77 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     this.stop();
     this.notes = [];
     this.selectedNotes = new Set();
+  }
+
+  // ── Export to DAW timeline ─────────────────────────────
+  isExporting = false;
+
+  async exportToTrack() {
+    const valid = this.notes.filter(n => n.duration > 0);
+    if (!valid.length) return;
+    this.isExporting = true;
+
+    try {
+      const spb      = 60 / this.bpm;
+      const totalSec = Math.max(...valid.map(n => n.start * spb + n.duration * spb)) + 2.0;
+
+      const inst  = this.currentInstrumentType;
+      const instrName: Record<string, string> = {
+        'piano': '🎹 Piano', 'guitar': '🎸 Guitarra', 'guitar-electric': '⚡ El. Guitar', 'bass': '🎸 Bajo',
+      };
+
+      const getSamplerCfg = (): { urls: Record<string,string>; baseUrl: string; release: number } => {
+        if (inst === 'guitar')          return { urls: { 'A2':'A2.mp3','A3':'A3.mp3','A4':'A4.mp3','B2':'B2.mp3','B3':'B3.mp3','C3':'C3.mp3','C4':'C4.mp3','C5':'C5.mp3','D3':'D3.mp3','D4':'D4.mp3','D5':'D5.mp3','E2':'E2.mp3','E3':'E3.mp3','E4':'E4.mp3','F3':'F3.mp3','F4':'F4.mp3','G2':'G2.mp3','G3':'G3.mp3','G4':'G4.mp3' }, baseUrl: 'https://nbrosowsky.github.io/tonejs-instruments/samples/guitar-acoustic/', release: 1.2 };
+        if (inst === 'guitar-electric') return { urls: { 'A2':'A2.mp3','A3':'A3.mp3','A4':'A4.mp3','A5':'A5.mp3','C3':'C3.mp3','C4':'C4.mp3','C5':'C5.mp3','C6':'C6.mp3','C#2':'Cs2.mp3','D#3':'Ds3.mp3','D#4':'Ds4.mp3','D#5':'Ds5.mp3','E2':'E2.mp3','F#2':'Fs2.mp3','F#3':'Fs3.mp3','F#4':'Fs4.mp3','F#5':'Fs5.mp3' }, baseUrl: 'https://nbrosowsky.github.io/tonejs-instruments/samples/guitar-electric/', release: 1.0 };
+        if (inst === 'bass')            return { urls: { 'A#1':'As1.mp3','A#2':'As2.mp3','A#3':'As3.mp3','A#4':'As4.mp3','C#1':'Cs1.mp3','C#2':'Cs2.mp3','C#3':'Cs3.mp3','C#4':'Cs4.mp3','C#5':'Cs5.mp3','E1':'E1.mp3','E2':'E2.mp3','E3':'E3.mp3','E4':'E4.mp3','G1':'G1.mp3','G2':'G2.mp3','G3':'G3.mp3','G4':'G4.mp3' }, baseUrl: 'https://nbrosowsky.github.io/tonejs-instruments/samples/bass-electric/', release: 1.5 };
+        return { urls: SAMPLER_URLS, baseUrl: SAMPLER_BASE, release: 1.5 };
+      };
+
+      const cfg    = getSamplerCfg();
+      const buffer = await Offline(async () => {
+        const s = new Sampler({ urls: cfg.urls, release: cfg.release, baseUrl: cfg.baseUrl }).toDestination();
+        await loaded();
+        for (const note of valid) {
+          const name = this.midiToName(note.pitch);
+          const t    = note.start  * spb;
+          const dur  = note.duration * spb;
+          s.triggerAttackRelease(name, dur, t, note.velocity);
+        }
+      }, totalSec, 2);
+
+      const wav = this.toneBufferToWav(buffer);
+      const url = URL.createObjectURL(wav);
+      this.zone.run(() => {
+        this.isExporting = false;
+        this.addTrack.emit({ url, nombre: instrName[inst] || 'Piano Roll' });
+      });
+    } catch (err) {
+      console.error('Export error', err);
+      this.zone.run(() => { this.isExporting = false; });
+    }
+  }
+
+  private toneBufferToWav(toneBuffer: any): Blob {
+    const ab    = toneBuffer.get?.() ?? toneBuffer;
+    const left  = ab.getChannelData(0);
+    const right = ab.numberOfChannels > 1 ? ab.getChannelData(1) : left;
+    const len   = left.length;
+    const sr    = ab.sampleRate;
+    const arrBuf = new ArrayBuffer(44 + len * 4);
+    const v = new DataView(arrBuf);
+    const ws = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    ws(0,'RIFF'); v.setUint32(4, 36 + len * 4, true);
+    ws(8,'WAVE'); ws(12,'fmt ');
+    v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,2,true);
+    v.setUint32(24,sr,true); v.setUint32(28,sr*4,true); v.setUint16(32,4,true);
+    v.setUint16(34,16,true); ws(36,'data'); v.setUint32(40,len*4,true);
+    let off = 44;
+    for (let i = 0; i < len; i++) {
+      const l = Math.max(-1, Math.min(1, left[i]));
+      const r = Math.max(-1, Math.min(1, right[i]));
+      v.setInt16(off, l < 0 ? l * 0x8000 : l * 0x7FFF, true); off += 2;
+      v.setInt16(off, r < 0 ? r * 0x8000 : r * 0x7FFF, true); off += 2;
+    }
+    return new Blob([arrBuf], { type: 'audio/wav' });
   }
 }

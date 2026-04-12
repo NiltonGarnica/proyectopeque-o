@@ -32,17 +32,6 @@
       </button>
     </div>
 
-    <div class="toolbar-panels">
-      <button class="panel-toggle" [class.active]="showRecorder"
-        (click)="showRecorder = !showRecorder">🎤 Grab.</button>
-      <button class="panel-toggle" [class.active]="showKaraoke"
-        (click)="showKaraoke = !showKaraoke">🎙 Karaoke</button>
-      <button class="panel-toggle" [class.active]="showPianoRollEditor"
-        (click)="showPianoRollEditor = !showPianoRollEditor">🎹 Piano</button>
-      <button class="panel-toggle" [class.active]="showMixerPanel"
-        (click)="showMixerPanel = !showMixerPanel">🎚 Mixer</button>
-    </div>
-
   </div>
 
   <!-- ═══════════════════════════ DAW BODY ═══════════════════════════ -->
@@ -51,8 +40,44 @@
     <!-- ─── SIDEBAR ─── -->
     <aside class="daw-sidebar">
 
+      <!-- Tool Navigation -->
+      <div class="sb-tools">
+        <div class="sb-tools-title">Herramientas</div>
+
+        <button class="sb-tool-btn" [class.active]="showLibraryPanel"
+          (click)="showLibraryPanel = !showLibraryPanel">
+          <span class="sb-tool-icon">📁</span> Archivos
+        </button>
+        <button class="sb-tool-btn" [class.active]="showPreviewPanel"
+          (click)="showPreviewPanel = !showPreviewPanel">
+          <span class="sb-tool-icon">🎧</span> Preview
+        </button>
+        <button class="sb-tool-btn" [class.active]="showRecorder"
+          (click)="showRecorder = !showRecorder">
+          <span class="sb-tool-icon">🎤</span> Grabador
+        </button>
+        <button class="sb-tool-btn" [class.active]="showKaraoke"
+          (click)="showKaraoke = !showKaraoke">
+          <span class="sb-tool-icon">🎙</span> Karaoke
+        </button>
+        <button class="sb-tool-btn" [class.active]="showPianoAdvanced"
+          (click)="showPianoAdvanced = !showPianoAdvanced">
+          <span class="sb-tool-icon">🎹</span> Piano Avanzado
+        </button>
+        <button class="sb-tool-btn" [class.active]="showPianoSimple"
+          (click)="showPianoSimple = !showPianoSimple">
+          <span class="sb-tool-icon">🎵</span> Piano Simple
+        </button>
+        <button class="sb-tool-btn" [class.active]="showMixerPanel"
+          (click)="showMixerPanel = !showMixerPanel">
+          <span class="sb-tool-icon">🎚</span> Mixer
+        </button>
+      </div>
+
+      <div class="sb-divider"></div>
+
       <!-- Upload -->
-      <div class="sb-section">
+      <div class="sb-section" *ngIf="showLibraryPanel">
         <div class="sb-title">📁 Archivos</div>
         <label class="sb-upload">
           <input type="file" accept="audio/*"
@@ -63,7 +88,7 @@
       </div>
 
       <!-- Mini player -->
-      <div class="sb-section">
+      <div class="sb-section" *ngIf="showPreviewPanel">
         <div class="sb-title">🎧 Previa</div>
         <app-audio-player [src]="playerSrc"></app-audio-player>
       </div>
@@ -114,8 +139,46 @@
         </div>
       </div>
 
-      <!-- PANELS ROW (Grabador + Karaoke side by side) -->
-      <div class="daw-panels-row" *ngIf="showRecorder || showKaraoke">
+      <!-- ══════ COLLAPSIBLE PANELS BELOW ══════ -->
+
+      <!-- PIANO AVANZADO (full-width, resizable) -->
+      <div class="daw-panel-block" *ngIf="showPianoAdvanced" [style.height.px]="pianoAdvH">
+        <div class="panel-resize-handle" (mousedown)="onResizeStart('pianoAdv', pianoAdvH, $event)"
+          title="Arrastrar para redimensionar"></div>
+        <div class="panel-header">
+          <span>🎹 Piano Roll Avanzado</span>
+          <button class="panel-close" (click)="showPianoAdvanced = false">✕</button>
+        </div>
+        <div class="panel-content">
+          <app-audio-piano-roll
+            (addTrack)="onPianoTrack($event)">
+          </app-audio-piano-roll>
+        </div>
+      </div>
+
+      <!-- PIANO SIMPLE (full-width, resizable) -->
+      <div class="daw-panel-block" *ngIf="showPianoSimple" [style.height.px]="pianoSimH">
+        <div class="panel-resize-handle" (mousedown)="onResizeStart('pianoSim', pianoSimH, $event)"
+          title="Arrastrar para redimensionar"></div>
+        <div class="panel-header">
+          <span>🎵 Piano Roll Simple</span>
+          <button class="panel-close" (click)="showPianoSimple = false">✕</button>
+        </div>
+        <div class="panel-content">
+          <app-piano-roll
+            [playheadTime]="playheadTime"
+            (addTrack)="onPianoTrack($event)"
+            (seekTo)="onSeekTo($event)">
+          </app-piano-roll>
+        </div>
+      </div>
+
+      <!-- PANELS ROW (Grabador + Karaoke side by side, resizable) -->
+      <div class="daw-panels-row" *ngIf="showRecorder || showKaraoke"
+        [style.height.px]="recorderH">
+        <div class="panel-resize-handle" (mousedown)="onResizeStart('recorder', recorderH, $event)"
+          title="Arrastrar para redimensionar"></div>
+        <div class="daw-panels-inner">
 
         <!-- GRABADOR PANEL -->
         <div class="daw-panel" *ngIf="showRecorder">
@@ -164,25 +227,15 @@
             <div class="efecto-row"><label>Tono</label><input type="range" min="0.5" max="2" step="0.05" [(ngModel)]="karaokeEfectos.tono" (input)="updateKaraokeChain()"><span>{{ karaokeEfectos.tono.toFixed(2) }}x</span></div>
           </div>
         </div>
+        </div><!-- /daw-panels-inner -->
 
       </div>
 
-      <!-- PIANO ROLL PANEL (full width) -->
-      <div class="daw-piano-panel" *ngIf="showPianoRollEditor">
-        <div class="panel-header">
-          <span>🎹 Piano Roll</span>
-          <button class="panel-close" (click)="showPianoRollEditor = false">✕</button>
-        </div>
-        <app-audio-piano-roll></app-audio-piano-roll>
-        <app-piano-roll
-          [playheadTime]="playheadTime"
-          (addTrack)="onPianoTrack($event)"
-          (seekTo)="onSeekTo($event)">
-        </app-piano-roll>
-      </div>
-
-      <!-- MIXER PANEL (horizontal channels) -->
-      <div class="daw-mixer" *ngIf="showMixerPanel && hasClips">
+      <!-- MIXER PANEL (horizontal channels, resizable) -->
+      <div class="daw-mixer" *ngIf="showMixerPanel && hasClips"
+        [style.height.px]="mixerH">
+        <div class="panel-resize-handle" (mousedown)="onResizeStart('mixer', mixerH, $event)"
+          title="Arrastrar para redimensionar"></div>
         <div class="panel-header">
           <span>🎚 Mixer — {{ pistas.filter(p => p.segmentos.length > 0).length }} pista{{ pistas.filter(p => p.segmentos.length > 0).length === 1 ? '' : 's' }}</span>
           <span class="mixer-active-hint">{{ pistas.filter(p => p.activa && p.segmentos.length > 0).length }} activas</span>

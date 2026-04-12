@@ -30,10 +30,41 @@ interface LiveChain {
 })
 export class AudioStudio implements OnInit, OnDestroy {
 
-  showPianoRollEditor = false;
-  showRecorder    = true;
-  showKaraoke     = false;
-  showMixerPanel  = true;
+  showPianoAdvanced  = false;   // app-audio-piano-roll (canvas, multi-instrument)
+  showPianoSimple    = false;   // app-piano-roll (DOM, Salamander only)
+  showRecorder       = false;
+  showKaraoke        = false;
+  showMixerPanel     = false;
+  showPreviewPanel   = true;
+  showLibraryPanel   = true;
+
+  // Panel heights (px) — draggable
+  timelineH  = 0;   // 0 = flex:1 (fills remaining)
+  pianoAdvH  = 340;
+  pianoSimH  = 320;
+  recorderH  = 260;
+  karaokeH   = 300;
+  mixerH     = 190;
+
+  private _resizing: { panel: string; startY: number; startH: number } | null = null;
+
+  onResizeStart(panel: string, startH: number, e: MouseEvent) {
+    e.preventDefault();
+    this._resizing = { panel, startY: e.clientY, startH };
+    const move = (ev: MouseEvent) => {
+      if (!this._resizing) return;
+      const delta = this._resizing.startY - ev.clientY;
+      const h = Math.max(140, this._resizing.startH + delta);
+      (this as any)[panel + 'H'] = h;
+    };
+    const up = () => {
+      this._resizing = null;
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
 
   pistas: Pista[] = [];
   playerSrc = '';

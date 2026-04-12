@@ -240,6 +240,22 @@
 }
 .btn-clear:hover { background: rgba(239,68,68,0.5); transform: scale(1.04); }
 
+.btn-export-track {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #e9d5ff;
+  border: 1px solid rgba(124,58,237,0.5);
+  border-radius: 7px;
+  padding: 5px 13px;
+  font-size: 0.85em;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 0;
+  box-shadow: 0 0 10px rgba(124,58,237,0.35);
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+.btn-export-track:hover:not(:disabled) { box-shadow: 0 0 18px rgba(124,58,237,0.6); transform: scale(1.03); }
+.btn-export-track:disabled { opacity: 0.45; cursor: not-allowed; }
+
 /* ── Hint ────────────────────────────── */
 .pr-hint {
   font-size: 0.75em;
