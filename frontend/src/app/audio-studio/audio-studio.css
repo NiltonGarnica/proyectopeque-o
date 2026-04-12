@@ -375,6 +375,22 @@
 .daw-empty p { margin: 0; font-size: 0.9em; }
 .daw-empty-sub { font-size: 0.78em !important; color: #1e3a5f; }
 
+/* ─── TIMELINE HINT (shown when no clips) ─── */
+.daw-empty-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75em;
+  color: #1e3a5f;
+  white-space: nowrap;
+  pointer-events: none;
+  background: rgba(6,14,28,0.7);
+  padding: 4px 14px;
+  border-radius: 20px;
+  border: 1px solid #1e3a5f;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    PANELS
    ═══════════════════════════════════════════════════════════════ */

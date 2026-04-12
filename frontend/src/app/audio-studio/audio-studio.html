@@ -11,7 +11,7 @@
     <div class="toolbar-transport">
       <button class="t-btn t-play"
         (click)="mezclarYReproducir()"
-        [disabled]="reproduciendo || !pistas.length"
+        [disabled]="reproduciendo || !hasClips"
         title="Reproducir">▶</button>
       <button class="t-btn t-stop"
         (click)="detenerTodas()"
@@ -27,7 +27,7 @@
       <span class="t-status" *ngIf="mensajeExport">{{ mensajeExport }}</span>
       <button class="t-btn t-export"
         (click)="exportarMezcla()"
-        [disabled]="exportando || reproduciendo || !pistas.length">
+        [disabled]="exportando || reproduciendo || !hasClips">
         {{ exportando ? '⏳' : '💾' }} Exportar
       </button>
     </div>
@@ -91,8 +91,8 @@
       </div>
 
       <!-- Track count -->
-      <div class="sb-footer" *ngIf="pistas.length > 0">
-        <span>{{ pistas.filter(p => p.activa).length }} / {{ pistas.length }} activas</span>
+      <div class="sb-footer">
+        <span>{{ pistas.filter(p => p.activa && p.segmentos.length > 0).length }} / {{ pistas.filter(p => p.segmentos.length > 0).length }} con clips</span>
       </div>
 
     </aside>
@@ -100,20 +100,17 @@
     <!-- ─── WORKSPACE ─── -->
     <div class="daw-workspace">
 
-      <!-- TIMELINE (always central) -->
+      <!-- TIMELINE (always visible) -->
       <div class="daw-timeline-area">
         <app-audio-timeline
-          *ngIf="pistas.length > 0"
           [pistas]="pistas"
           [playheadTime]="playheadTime"
           [reproduciendo]="reproduciendo"
           (deletePista)="onDeleteFromTimeline($event)"
           (seekTo)="onSeekTo($event)">
         </app-audio-timeline>
-        <div class="daw-empty" *ngIf="pistas.length === 0">
-          <div class="daw-empty-icon">🎛</div>
-          <p>Sube un archivo de audio o graba tu voz para comenzar</p>
-          <p class="daw-empty-sub">Cada pista aparecerá aquí en el timeline</p>
+        <div class="daw-empty-hint" *ngIf="!hasClips">
+          Sube un audio, graba tu voz o usa el Piano Roll — los clips aparecen sobre las pistas
         </div>
       </div>
 
@@ -185,14 +182,15 @@
       </div>
 
       <!-- MIXER PANEL (horizontal channels) -->
-      <div class="daw-mixer" *ngIf="showMixerPanel && pistas.length > 0">
+      <div class="daw-mixer" *ngIf="showMixerPanel && hasClips">
         <div class="panel-header">
-          <span>🎚 Mixer — {{ pistas.length }} pista{{ pistas.length === 1 ? '' : 's' }}</span>
-          <span class="mixer-active-hint">{{ pistas.filter(p => p.activa).length }} activas</span>
+          <span>🎚 Mixer — {{ pistas.filter(p => p.segmentos.length > 0).length }} pista{{ pistas.filter(p => p.segmentos.length > 0).length === 1 ? '' : 's' }}</span>
+          <span class="mixer-active-hint">{{ pistas.filter(p => p.activa && p.segmentos.length > 0).length }} activas</span>
         </div>
         <div class="mixer-channels">
+          <ng-container *ngFor="let p of pistas; let i = index">
           <div class="mixer-channel"
-            *ngFor="let p of pistas; let i = index"
+            *ngIf="p.segmentos.length > 0"
             [class.muted]="!p.activa"
             [style.border-top-color]="p.color">
 
@@ -243,6 +241,7 @@
             </div>
 
           </div>
+          </ng-container>
         </div>
       </div>
 

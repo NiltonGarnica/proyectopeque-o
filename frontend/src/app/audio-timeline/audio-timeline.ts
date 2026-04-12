@@ -162,7 +162,7 @@ export class AudioTimeline implements DoCheck, OnDestroy {
     if (!this.contextMenu) return;
     const { pi, si } = this.contextMenu;
     this.pistas[pi].segmentos.splice(si, 1);
-    if (this.pistas[pi].segmentos.length === 0) this.pistas.splice(pi, 1);
+    // Keep the empty track row visible — do not delete the pista
     this.selectedSeg = null;
     this.contextMenu = null;
   }
@@ -318,7 +318,7 @@ export class AudioTimeline implements DoCheck, OnDestroy {
         } else {
           this.pistas[d.targetPi].segmentos.push(seg);
         }
-        if (src.segmentos.length === 0) this.pistas.splice(d.srcPi, 1);
+        // Keep the empty source row — do not delete the pista
       }
       this.selectedSeg = null;
     }

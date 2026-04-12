@@ -76,7 +76,40 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   constructor(public auth: AuthService, private zone: NgZone, private http: HttpClient) {}
 
-  ngOnInit() { this.cargarMezclas(); }
+  ngOnInit() { this.initDefaultTracks(); this.cargarMezclas(); }
+
+  private initDefaultTracks() {
+    if (this.pistas.length > 0) return; // already initialised (route reuse)
+    this.pistas = [
+      { nombre: 'Track 1', activa: true, color: COLORS[0], efectos: this.efectosDefault(), segmentos: [] },
+      { nombre: 'Track 2', activa: true, color: COLORS[1], efectos: this.efectosDefault(), segmentos: [] },
+      { nombre: 'Track 3', activa: true, color: COLORS[2], efectos: this.efectosDefault(), segmentos: [] },
+      { nombre: 'Track 4', activa: true, color: COLORS[3], efectos: this.efectosDefault(), segmentos: [] },
+    ];
+    this.colorIdx = 4;
+  }
+
+  /** Fills the first empty track slot; creates a new track if all slots are occupied. */
+  private addSegmentToTrack(nombre: string, seg: Segmento, color?: string) {
+    const empty = this.pistas.find(p => p.segmentos.length === 0);
+    if (empty) {
+      empty.nombre = nombre;
+      if (color) empty.color = color;
+      empty.segmentos.push(seg);
+    } else {
+      this.pistas.push({
+        nombre,
+        activa: true,
+        color: color || this.nextColor(),
+        efectos: this.efectosDefault(),
+        segmentos: [seg],
+      });
+    }
+  }
+
+  get hasClips(): boolean {
+    return this.pistas.some(p => p.activa && p.segmentos.length > 0);
+  }
 
   ngOnDestroy() { this.detenerTodas(); this.detenerKaraoke(); }
 
@@ -105,30 +138,15 @@ export class AudioStudio implements OnInit, OnDestroy {
   async onPianoTrack(event: { url: string; nombre: string }) {
     const seg = await this.crearSegmento(event.url, event.nombre);
     this.zone.run(() => {
-      this.pistas.push({
-        nombre: event.nombre,
-        activa: true,
-        color: this.nextColor(),
-        efectos: this.efectosDefault(),
-        segmentos: [seg],
-      });
+      this.addSegmentToTrack(event.nombre, seg);
       this.pistas = [...this.pistas];
     });
   }
 
   async onAudioUrl(url: string) {
-    const num = this.pistas.length + 1;
-    const nombre = `Pista ${num}`;
+    const nombre = `Grabación ${Date.now() % 10000}`;
     const seg = await this.crearSegmento(url, nombre);
-    this.zone.run(() => {
-      this.pistas.push({
-        nombre,
-        activa: true,
-        color: this.nextColor(),
-        efectos: this.efectosDefault(),
-        segmentos: [seg],
-      });
-    });
+    this.zone.run(() => { this.addSegmentToTrack(nombre, seg); });
   }
 
   duplicarPista(pista: Pista) {
@@ -146,8 +164,6 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   eliminarPista(index: number) {
     this.pistas.splice(index, 1);
-    let n = 1;
-    this.pistas.forEach(p => { p.nombre = `Pista ${n++}`; });
   }
 
   previsualizarPista(url: string) { this.playerSrc = url; }
@@ -169,17 +185,11 @@ export class AudioStudio implements OnInit, OnDestroy {
 
     this.http.post<any>(`${API}/api/upload-audio`, formData).subscribe({
       next: async (res) => {
-        const nombre = file.name.replace(/\.[^.]+$/, '') || `Pista ${this.pistas.length + 1}`;
+        const nombre = file.name.replace(/\.[^.]+$/, '') || `Audio ${this.pistas.length + 1}`;
         const seg = await this.crearSegmento(res.url, nombre);
         this.zone.run(() => {
           this.subiendoArchivo = false;
-          this.pistas.push({
-            nombre,
-            activa: true,
-            color: this.nextColor(),
-            efectos: this.efectosDefault(),
-            segmentos: [seg],
-          });
+          this.addSegmentToTrack(nombre, seg);
         });
       },
       error: () => { this.subiendoArchivo = false; this.errorArchivo = 'Error al subir el archivo'; }
@@ -277,8 +287,8 @@ export class AudioStudio implements OnInit, OnDestroy {
     const localUrl = URL.createObjectURL(blob);
     const seg = await this.crearSegmento(localUrl, nombre);
     this.zone.run(() => {
-      this.karaokeUrlLocal = localUrl;   // disponible para descarga
-      this.pistas.push({ nombre, activa: true, color: '#8b5cf6', efectos: this.efectosDefault(), segmentos: [seg] });
+      this.karaokeUrlLocal = localUrl;
+      this.addSegmentToTrack(nombre, seg, '#8b5cf6');
     });
     // Upload in background to make it persistent
     const formData = new FormData();
