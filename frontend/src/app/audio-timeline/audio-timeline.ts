@@ -8,6 +8,8 @@ export interface Segmento {
   trimStart: number;
   trimEnd: number;
   duration: number;
+  tipo?: 'audio' | 'pattern' | 'vocal';
+  patternId?: number;
 }
 
 export interface EfectosPista {
@@ -28,6 +30,16 @@ export interface Pista {
   segmentos: Segmento[];
 }
 
+export interface Pattern {
+  id: number;
+  nombre: string;
+  instrumento: string;  // 'piano' | 'guitar' | 'guitar-electric' | 'bass'
+  notas: any[];
+  color: string;
+  duracion: number;  // in beats
+  bpm: number;
+}
+
 @Component({
   selector: 'app-audio-timeline',
   standalone: false,
@@ -40,6 +52,10 @@ export class AudioTimeline implements DoCheck, OnDestroy {
   @Input() reproduciendo = false;
   @Output() seekTo = new EventEmitter<number>();
   @Output() deletePista = new EventEmitter<number>();
+  @Input() patterns: Pattern[] = [];
+  @Input() activePatternId: number | null = null;
+  @Output() selectPattern = new EventEmitter<number>();
+  @Output() createPattern = new EventEmitter<{ pi: number; startTime: number }>();
 
   pxPerSecond = 80;
   readonly LABEL_W = 80;
@@ -74,6 +90,7 @@ export class AudioTimeline implements DoCheck, OnDestroy {
   ngDoCheck() {
     for (const p of this.pistas) {
       for (const s of p.segmentos) {
+        if (s.tipo === 'pattern' || !s.url) continue;
         if (!this.seenUrls.has(s.url)) {
           this.seenUrls.add(s.url);
           this.fetchWaveform(s.url);
@@ -299,6 +316,10 @@ export class AudioTimeline implements DoCheck, OnDestroy {
     if (d.type === 'move' && !d.hasMoved) {
       const same = this.selectedSeg?.pi === d.srcPi && this.selectedSeg?.si === d.si;
       this.selectedSeg = same ? null : { pi: d.srcPi, si: d.si };
+      const seg = this.pistas[d.srcPi]?.segmentos[d.si];
+      if (seg?.tipo === 'pattern' && seg.patternId != null) {
+        this.selectPattern.emit(seg.patternId);
+      }
       this.dragState = null;
       window.removeEventListener('pointermove', this.boundMove);
       window.removeEventListener('pointerup', this.boundUp);
@@ -339,5 +360,43 @@ export class AudioTimeline implements DoCheck, OnDestroy {
   get emptyRows(): number[] {
     const count = Math.max(0, 10 - this.pistas.length);
     return Array.from({ length: count }, (_, i) => i);
+  }
+
+  isPattern(s: Segmento): boolean {
+    return s.tipo === 'pattern';
+  }
+
+  getPatternForSeg(s: Segmento): Pattern | null {
+    if (s.patternId == null) return null;
+    return this.patterns.find(p => p.id === s.patternId) || null;
+  }
+
+  getPatternNoteCount(s: Segmento): number {
+    return this.getPatternForSeg(s)?.notas.length ?? 0;
+  }
+
+  getPatternColor(s: Segmento): string | null {
+    return this.getPatternForSeg(s)?.color || null;
+  }
+
+  getInstrumentIcon(s: Segmento): string {
+    const inst = this.getPatternForSeg(s)?.instrumento;
+    if (inst === 'guitar' || inst === 'guitar-electric') return '🎸';
+    if (inst === 'bass') return '🎸';
+    return '🎹';
+  }
+
+  getActivePatternName(): string {
+    if (this.activePatternId == null) return '';
+    return this.patterns.find(p => p.id === this.activePatternId)?.nombre ?? '';
+  }
+
+  addPatternAt(pi: number) {
+    const track = this.pistas[pi];
+    let startTime = 0;
+    for (const s of track.segmentos) {
+      startTime = Math.max(startTime, s.startTime + s.duration - s.trimStart - s.trimEnd);
+    }
+    this.createPattern.emit({ pi, startTime });
   }
 }

@@ -352,6 +352,104 @@
   background: rgba(100,116,139,0.08);
 }
 
+/* PATTERN BLOCKS */
+.tl-block-pattern {
+  border: 1.5px solid rgba(255,255,255,0.25);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0,0,0,0.12) 0px,
+    rgba(0,0,0,0.12) 3px,
+    transparent 3px,
+    transparent 8px
+  ) !important;
+  background-blend-mode: multiply;
+}
+
+.tl-active-pattern {
+  border: 2px solid #f0abfc !important;
+  box-shadow: 0 0 0 2px rgba(240,171,252,0.35), 0 2px 8px rgba(0,0,0,0.5) !important;
+}
+
+.tl-pattern-body {
+  flex-direction: row;
+  gap: 4px;
+  padding: 0 6px;
+}
+
+.tl-pat-icon {
+  font-size: 1em;
+  flex-shrink: 0;
+}
+
+.tl-pat-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 1px;
+}
+
+.tl-pat-notes {
+  font-size: 0.6em;
+  color: rgba(255,255,255,0.55);
+}
+
+.tl-pat-active-badge {
+  font-size: 0.55em;
+  font-weight: 700;
+  background: #f0abfc;
+  color: #3b0764;
+  border-radius: 3px;
+  padding: 1px 4px;
+  flex-shrink: 0;
+  align-self: center;
+  letter-spacing: 0.05em;
+}
+
+/* ACTIVE PATTERN BADGE in toolbar */
+.tl-active-pat-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(240,171,252,0.15);
+  border: 1px solid rgba(240,171,252,0.3);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 0.75em;
+  color: #f0abfc;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tl-pat-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #f0abfc;
+  animation: tl-pat-blink 1s ease-in-out infinite;
+}
+
+@keyframes tl-pat-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ADD PATTERN button */
+.tl-add-pat-btn {
+  background: rgba(240,171,252,0.15);
+  border: 1px solid rgba(240,171,252,0.3);
+  color: #f0abfc;
+  cursor: pointer;
+  padding: 1px 4px;
+  margin: 0;
+  border-radius: 3px;
+  font-size: 0.7em;
+  line-height: 1;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.tl-add-pat-btn:hover { background: rgba(240,171,252,0.28); }
+
 /* HINT */
 .tl-hint {
   font-size: 0.7em;

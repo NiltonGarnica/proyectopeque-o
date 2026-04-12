@@ -1,6 +1,6 @@
 import {
-  Component, AfterViewInit, OnDestroy, Output, EventEmitter,
-  ViewChild, ElementRef, NgZone
+  Component, AfterViewInit, OnDestroy, OnChanges, Input, Output, EventEmitter,
+  ViewChild, ElementRef, NgZone, SimpleChanges
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
@@ -59,9 +59,13 @@ interface SavedRoll { _id: string; nombre: string; bpm: number; notes: PianoNote
   templateUrl: './audio-piano-roll.html',
   styleUrl:    './audio-piano-roll.css',
 })
-export class AudioPianoRoll implements AfterViewInit, OnDestroy {
+export class AudioPianoRoll implements AfterViewInit, OnDestroy, OnChanges {
 
+  @Input()  activePattern: any | null = null;
+  @Output() notesChanged = new EventEmitter<PianoNote[]>();
   @Output() addTrack = new EventEmitter<{ url: string; nombre: string }>();
+
+  private loadingPattern = false;
 
   @ViewChild('gridCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('container')  containerRef!: ElementRef<HTMLDivElement>;
@@ -178,6 +182,33 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   private globalUpFn!: () => void;
 
   constructor(private http: HttpClient, private auth: AuthService, private zone: NgZone) {}
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['activePattern']) {
+      const p = this.activePattern;
+      if (p) {
+        this.loadingPattern = true;
+        this.stop();
+        this.notes = (p.notas as PianoNote[]).map(n => ({ ...n }));
+        this.bpm = p.bpm || this.bpm;
+        if (p.instrumento && p.instrumento !== this.currentInstrumentType) {
+          this.currentInstrumentType = p.instrumento;
+          this.onInstrumentChange();
+        }
+        this.selectedNotes = new Set();
+        this.selBox = null;
+        setTimeout(() => {
+          this.loadingPattern = false;
+          this.drawGrid();
+        }, 0);
+      }
+    }
+  }
+
+  private emitNotesChanged() {
+    if (this.loadingPattern || !this.activePattern) return;
+    this.notesChanged.emit([...this.notes]);
+  }
 
   ngAfterViewInit() {
     this.drawGrid();
@@ -459,6 +490,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     if (!this.selectedNotes.size) return;
     this.notes = this.notes.filter(n => !this.selectedNotes.has(n.id));
     this.selectedNotes = new Set();
+    this.emitNotesChanged();
   }
 
   copySelected() {
@@ -481,6 +513,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
 
     this.notes = [...this.notes, ...pasted];
     this.selectedNotes = new Set(pasted.map(n => n.id));
+    this.emitNotesChanged();
   }
 
   isSelected(id: string) { return this.selectedNotes.has(id); }
@@ -694,6 +727,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     // Draw mode: create note
     const note: PianoNote = { id: this.uid(), pitch, start: beat, duration: SNAP, velocity: 0.8 };
     this.notes = [...this.notes, note];
+    this.emitNotesChanged();
     this.dragMode = 'resize';
     this.dragNote = note;
     this.dragStartBeat = beat;
@@ -706,6 +740,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     if (e.button === 2) {
       this.notes = this.notes.filter(n => n.id !== note.id);
       this.selectedNotes.delete(note.id);
+      this.emitNotesChanged();
       return;
     }
 
@@ -796,6 +831,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
   }
 
   onMouseUp() {
+    const wasDragging = this.dragMode !== null;
     if (this.selDragging && this.selBox) {
       const { beatStart, beatEnd, pitchMin, pitchMax } = this.selBox;
       const hit = this.notes
@@ -813,6 +849,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     this.dragMode     = null;
     this.dragNote     = null;
     this.selDragOrigins.clear();
+    if (wasDragging) this.emitNotesChanged();
   }
 
   // ── Playback ─────────────────────────────────────────
@@ -894,6 +931,7 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy {
     this.stop();
     this.notes = [];
     this.selectedNotes = new Set();
+    this.emitNotesChanged();
   }
 
   // ── Export to DAW timeline ─────────────────────────────

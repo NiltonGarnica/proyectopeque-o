@@ -8,6 +8,47 @@
   box-sizing: border-box;
 }
 
+/* ── Pattern banners ─────────────────── */
+.pr-pattern-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(240,171,252,0.12);
+  border: 1px solid rgba(240,171,252,0.3);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.82em;
+  color: #f0abfc;
+  margin-bottom: 8px;
+}
+
+.pr-pat-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #f0abfc;
+  flex-shrink: 0;
+  animation: pr-blink 1s ease-in-out infinite;
+}
+
+@keyframes pr-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.pr-pat-inst { color: #c084fc; font-size: 0.9em; }
+.pr-pat-notes-count { margin-left: auto; color: #94a3b8; font-size: 0.88em; }
+
+.pr-free-mode-banner {
+  background: rgba(51,65,85,0.4);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.75em;
+  color: #475569;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
 /* ── Toolbar ─────────────────────────── */
 .pr-toolbar {
   display: flex;

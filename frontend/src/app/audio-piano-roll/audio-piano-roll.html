@@ -1,5 +1,16 @@
 <div class="pr-wrapper">
 
+  <!-- ── Active pattern banner ──────────────────── -->
+  <div class="pr-pattern-banner" *ngIf="activePattern">
+    <span class="pr-pat-dot"></span>
+    Editando <strong>{{ activePattern.nombre }}</strong>
+    <span class="pr-pat-inst">· {{ activePattern.instrumento }}</span>
+    <span class="pr-pat-notes-count">{{ notes.length }} notas</span>
+  </div>
+  <div class="pr-free-mode-banner" *ngIf="!activePattern">
+    Modo libre — sin pattern activo (las notas no se guardan en el timeline)
+  </div>
+
   <!-- ── Toolbar ─────────────────────────────────── -->
   <div class="pr-toolbar">
     <div class="pr-left">

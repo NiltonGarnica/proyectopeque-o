@@ -2,6 +2,9 @@
 
   <div class="tl-toolbar">
     <h3>🎬 Timeline</h3>
+    <div class="tl-active-pat-badge" *ngIf="activePatternId != null">
+      <span class="tl-pat-dot"></span> Editando: {{ getActivePatternName() }}
+    </div>
     <div class="tl-actions">
       <button class="tl-btn" (click)="zoomOut()" title="Alejar">🔍−</button>
       <button class="tl-btn" (click)="zoomIn()" title="Acercar">🔍+</button>
@@ -29,6 +32,7 @@
          [class.tl-drop-target]="isDraggingOver(pi)">
       <div class="tl-label-col" [title]="p.nombre">
         <span class="tl-label-name">{{ p.nombre }}</span>
+        <button class="tl-add-pat-btn" (click)="addPatternAt(pi)" title="Añadir pattern">+P</button>
         <button class="tl-del-btn" (click)="deletePista.emit(pi)" title="Eliminar pista">✕</button>
       </div>
       <div class="tl-content" [style.width.px]="timelineWidth">
@@ -37,28 +41,41 @@
              class="tl-block"
              [class.tl-muted]="!p.activa"
              [class.tl-selected]="selectedSeg?.pi === pi && selectedSeg?.si === si"
+             [class.tl-block-pattern]="isPattern(s)"
+             [class.tl-active-pattern]="isPattern(s) && s.patternId === activePatternId"
              [style.left.px]="s.startTime * pxPerSecond"
              [style.width.px]="segWidth(s)"
-             [style.background]="p.color"
+             [style.background]="isPattern(s) ? (getPatternColor(s) || p.color) : p.color"
              (contextmenu)="onContextMenu($event, pi, si)">
-          <!-- Handle izquierdo (trim) -->
-          <div class="tl-handle" (pointerdown)="startTrim($event, pi, si, 'left')">
-            <span>◀</span>
-          </div>
-          <!-- Cuerpo (mover + seleccionar con tap) -->
-          <div class="tl-block-body" (pointerdown)="startMove($event, pi, si)"
+
+          <!-- Handle izquierdo -->
+          <div class="tl-handle" (pointerdown)="startTrim($event, pi, si, 'left')"><span>◀</span></div>
+
+          <!-- AUDIO body -->
+          <div class="tl-block-body" *ngIf="!isPattern(s)"
+               (pointerdown)="startMove($event, pi, si)"
                [class.tl-selected-body]="selectedSeg?.pi === pi && selectedSeg?.si === si">
-            <!-- Waveform -->
             <svg *ngIf="getWaveformPath(s.url)" class="tl-waveform"
                  viewBox="0 0 100 28" preserveAspectRatio="none">
               <path [attr.d]="getWaveformPath(s.url)" fill="rgba(255,255,255,0.28)" />
             </svg>
             <span class="tl-block-label">{{ s.nombre }}</span>
           </div>
-          <!-- Handle derecho (trim) -->
-          <div class="tl-handle" (pointerdown)="startTrim($event, pi, si, 'right')">
-            <span>▶</span>
+
+          <!-- PATTERN body -->
+          <div class="tl-block-body tl-pattern-body" *ngIf="isPattern(s)"
+               (pointerdown)="startMove($event, pi, si)"
+               [class.tl-selected-body]="selectedSeg?.pi === pi && selectedSeg?.si === si">
+            <span class="tl-pat-icon">{{ getInstrumentIcon(s) }}</span>
+            <div class="tl-pat-info">
+              <span class="tl-block-label">{{ s.nombre }}</span>
+              <span class="tl-pat-notes">{{ getPatternNoteCount(s) }} notas</span>
+            </div>
+            <span class="tl-pat-active-badge" *ngIf="s.patternId === activePatternId">EDIT</span>
           </div>
+
+          <!-- Handle derecho -->
+          <div class="tl-handle" (pointerdown)="startTrim($event, pi, si, 'right')"><span>▶</span></div>
         </div>
 
       </div>

@@ -44,8 +44,12 @@
           [pistas]="pistas"
           [playheadTime]="playheadTime"
           [reproduciendo]="reproduciendo"
+          [patterns]="patterns"
+          [activePatternId]="activePatternId"
           (deletePista)="onDeleteFromTimeline($event)"
-          (seekTo)="onSeekTo($event)">
+          (seekTo)="onSeekTo($event)"
+          (selectPattern)="onSelectPattern($event)"
+          (createPattern)="createPattern($event)">
         </app-audio-timeline>
         <div class="daw-empty-hint" *ngIf="!hasClips">
           Usa las herramientas del sidebar para agregar clips al timeline
@@ -145,7 +149,9 @@
         (focused)="focusWindow('pianoAdv')"
         (closed)="closeWindow('pianoAdv')">
         <app-audio-piano-roll
-          (addTrack)="onPianoTrack($event)">
+          [activePattern]="activePattern"
+          (addTrack)="onPianoTrack($event)"
+          (notesChanged)="onPatternNotesChanged($event)">
         </app-audio-piano-roll>
       </app-studio-window>
 

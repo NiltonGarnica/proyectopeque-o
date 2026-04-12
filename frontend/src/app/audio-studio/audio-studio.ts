@@ -3,7 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { StudioBusService } from '../services/studio-bus.service';
-import { Pista, EfectosPista, Segmento } from '../audio-timeline/audio-timeline';
+import { Pista, EfectosPista, Segmento, Pattern } from '../audio-timeline/audio-timeline';
+import { PianoNote } from '../audio-piano-roll/audio-piano-roll';
 
 const API = 'https://proyectopeque-o.onrender.com';
 
@@ -67,6 +68,57 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   closeWindow(name: string) {
     this.wins[name] = false;
+  }
+
+  // ── Patterns ─────────────────────────────────────────
+  patterns: Pattern[] = [];
+  activePatternId: number | null = null;
+  private patternCounter = 0;
+
+  get activePattern(): Pattern | null {
+    if (this.activePatternId == null) return null;
+    return this.patterns.find(p => p.id === this.activePatternId) || null;
+  }
+
+  createPattern(event: { pi: number; startTime: number }) {
+    const id = ++this.patternCounter;
+    const color = this.nextColor();
+    const bpm = 120;
+    const duracion = 4; // 1 bar default
+    const pattern: Pattern = { id, nombre: `Pattern ${id}`, instrumento: 'piano', notas: [], color, duracion, bpm };
+    this.patterns.push(pattern);
+    const durSec = (duracion / bpm) * 60;
+    const seg: Segmento = {
+      id: this.nextSegId(), tipo: 'pattern', patternId: id,
+      url: '', nombre: pattern.nombre,
+      startTime: event.startTime, trimStart: 0, trimEnd: 0, duration: durSec,
+    };
+    this.pistas[event.pi]?.segmentos.push(seg);
+    this.pistas = [...this.pistas];
+    this.activePatternId = id;
+    this.openWindow('pianoAdv');
+  }
+
+  onSelectPattern(id: number) {
+    this.activePatternId = id;
+    this.openWindow('pianoAdv');
+  }
+
+  onPatternNotesChanged(notes: PianoNote[]) {
+    const pat = this.activePattern;
+    if (!pat) return;
+    pat.notas = notes;
+    if (notes.length) {
+      const lastBeat = Math.max(...notes.map(n => n.start + n.duration));
+      const bars = Math.ceil(lastBeat / 4);
+      pat.duracion = Math.max(4, bars * 4);
+      const durSec = (pat.duracion / pat.bpm) * 60;
+      for (const pista of this.pistas) {
+        for (const s of pista.segmentos) {
+          if (s.patternId === pat.id) { s.duration = durSec; s.nombre = pat.nombre; }
+        }
+      }
+    }
   }
 
   pistas: Pista[] = [];
@@ -476,12 +528,13 @@ export class AudioStudio implements OnInit, OnDestroy {
       const ctx = new AudioContext();
       this.audioContext = ctx;
 
-      // Flatten all segments with their parent pista info
+      // Flatten all segments with their parent pista info (skip pattern blocks)
       type SegInfo = { seg: Segmento; pistaOrigIdx: number };
       const allSegs: SegInfo[] = [];
       for (const pista of activas) {
         const origIdx = this.pistas.indexOf(pista);
         for (const seg of pista.segmentos) {
+          if (seg.tipo === 'pattern') continue;
           allSegs.push({ seg, pistaOrigIdx: origIdx });
         }
       }
@@ -599,6 +652,7 @@ export class AudioStudio implements OnInit, OnDestroy {
       const allSegs: { seg: Segmento; efectos: EfectosPista }[] = [];
       for (const pista of activas) {
         for (const seg of pista.segmentos) {
+          if (seg.tipo === 'pattern') continue;
           allSegs.push({ seg, efectos: pista.efectos });
         }
       }
