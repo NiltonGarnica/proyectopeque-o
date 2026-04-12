@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { Pista, EfectosPista } from '../audio-timeline/audio-timeline';
 
 @Component({
@@ -7,7 +7,7 @@ import { Pista, EfectosPista } from '../audio-timeline/audio-timeline';
   templateUrl: './studio-mixer.html',
   styleUrl: './studio-mixer.css',
 })
-export class StudioMixer {
+export class StudioMixer implements OnChanges {
   @Input() pistas: Pista[] = [];
   @Input() reproduciendo = false;
 
@@ -22,6 +22,24 @@ export class StudioMixer {
 
   // Backup of activa states before solo was applied
   private soloBackup: boolean[] = [];
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['pistas']) {
+      // If pistas shrank, reset fxChannel if it now points out of bounds
+      if (this.fxChannel !== null && this.fxChannel >= this.pistas.length) {
+        this.fxChannel = null;
+      }
+      // If pistas reference changed while soloSet was active, clear solo state
+      // to avoid stale activa mutations on the wrong track references
+      if (!changes['pistas'].firstChange && this.soloSet.size > 0) {
+        this.soloSet.clear();
+        this.soloBackup = [];
+        // Restore all tracks to active
+        this.pistas.forEach(p => { p.activa = true; });
+        console.log('[Mixer] pistas changed — solo cleared');
+      }
+    }
+  }
 
   get hasPistas() {
     return this.pistas.some(p => p.segmentos.length > 0);
@@ -57,6 +75,7 @@ export class StudioMixer {
         p.activa = this.soloBackup[i] !== undefined ? this.soloBackup[i] : true;
       });
       this.soloBackup = [];
+      console.log('[Mixer] solo cleared — all tracks restored');
     } else {
       // First time entering solo: back up current states
       if (this.soloBackup.length === 0) {
@@ -65,6 +84,7 @@ export class StudioMixer {
       this.pistas.forEach((p, i) => {
         p.activa = this.soloSet.has(i);
       });
+      console.log('[Mixer] solo active — soloed tracks:', [...this.soloSet]);
     }
   }
 

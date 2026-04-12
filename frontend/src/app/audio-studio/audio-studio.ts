@@ -100,7 +100,7 @@ export class AudioStudio implements OnInit, OnDestroy {
     const bpm = 120;
     const duracion = 4; // 1 bar default
     const pattern: Pattern = { id, nombre: `Pattern ${id}`, instrumento: 'piano', notas: [], color, duracion, bpm };
-    this.patterns.push(pattern);
+    this.patterns = [...this.patterns, pattern];   // new ref → triggers ngOnChanges in timeline
     const durSec = (duracion / bpm) * 60;
     const seg: Segmento = {
       id: this.nextSegId(), tipo: 'pattern', patternId: id,
@@ -110,18 +110,28 @@ export class AudioStudio implements OnInit, OnDestroy {
     this.pistas[event.pi]?.segmentos.push(seg);
     this.pistas = [...this.pistas];
     this.activePatternId = id;
+    console.log('[Studio] createPattern id=%d track=%d notas=0', id, event.pi);
     this.openWindow('pianoAdv');
   }
 
   onSelectPattern(id: number) {
-    this.activePatternId = id;
+    console.log('[Studio] onSelectPattern id=%d', id);
+    // Force piano-roll reload even if same id (in case notes drifted out of sync)
+    this.activePatternId = null;
+    // Allow one CD cycle, then set to id so ngOnChanges fires even for same pattern
+    setTimeout(() => { this.activePatternId = id; });
     this.openWindow('pianoAdv');
   }
 
   onPatternNotesChanged(notes: PianoNote[]) {
     const pat = this.activePattern;
-    if (!pat) return;
+    if (!pat) {
+      console.warn('[Studio] onPatternNotesChanged — no activePattern, dropped', notes.length, 'notes');
+      return;
+    }
     pat.notas = notes;
+    console.log('[Studio] pattern %d saved %d notes', pat.id, notes.length);
+
     if (notes.length) {
       const lastBeat = Math.max(...notes.map(n => n.start + n.duration));
       const bars = Math.ceil(lastBeat / 4);
@@ -133,6 +143,9 @@ export class AudioStudio implements OnInit, OnDestroy {
         }
       }
     }
+    // Reassign both arrays so Angular CD propagates the mutation to timeline inputs
+    this.patterns = [...this.patterns];
+    this.pistas   = [...this.pistas];
   }
 
   pistas: Pista[] = [];
@@ -289,7 +302,8 @@ export class AudioStudio implements OnInit, OnDestroy {
   previsualizarPista(url: string) { this.playerSrc = url; }
 
   previsualizarPistaObj(pista: Pista) {
-    if (pista.segmentos.length > 0) this.playerSrc = pista.segmentos[0].url;
+    const seg = pista.segmentos.find(s => s.url);  // skip pattern segments (url='')
+    if (seg) this.playerSrc = seg.url;
   }
 
   subirArchivo(event: Event) {

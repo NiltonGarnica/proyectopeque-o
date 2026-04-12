@@ -187,9 +187,10 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy, OnChanges {
     if (changes['activePattern']) {
       const p = this.activePattern;
       if (p) {
+        console.log('[PianoRoll] loading pattern id=%d notas=%d', p.id, p.notas?.length ?? 0);
         this.loadingPattern = true;
         this.stop();
-        this.notes = (p.notas as PianoNote[]).map(n => ({ ...n }));
+        this.notes = ((p.notas ?? []) as PianoNote[]).map(n => ({ ...n }));
         this.bpm = p.bpm || this.bpm;
         if (p.instrumento && p.instrumento !== this.currentInstrumentType) {
           this.currentInstrumentType = p.instrumento;
@@ -201,12 +202,17 @@ export class AudioPianoRoll implements AfterViewInit, OnDestroy, OnChanges {
           this.loadingPattern = false;
           this.drawGrid();
         }, 0);
+      } else {
+        // Pattern cleared (null) — reset grid but keep notes visible
+        console.log('[PianoRoll] activePattern cleared (free mode)');
+        this.drawGrid();
       }
     }
   }
 
   private emitNotesChanged() {
     if (this.loadingPattern || !this.activePattern) return;
+    console.log('[PianoRoll] emitNotesChanged %d notes → pattern id=%d', this.notes.length, this.activePattern?.id);
     this.notesChanged.emit([...this.notes]);
   }
 
