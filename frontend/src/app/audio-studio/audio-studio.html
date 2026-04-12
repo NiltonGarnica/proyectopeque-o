@@ -35,54 +35,6 @@
   <!-- ════════════════ BODY ════════════════ -->
   <div class="daw-body">
 
-    <!-- ── SIDEBAR (launcher) ── -->
-    <aside class="daw-sidebar">
-
-      <!-- Tool buttons -->
-      <div class="sb-launcher">
-        <div class="sb-launcher-title">Herramientas</div>
-
-        <button class="sb-launcher-btn" [class.active]="wins['archivos']"
-          (click)="toggleWindow('archivos')" title="Subir audio">
-          <span>📁</span> Archivos
-        </button>
-        <button class="sb-launcher-btn" [class.active]="wins['preview']"
-          (click)="toggleWindow('preview')" title="Preview de audio">
-          <span>🎧</span> Preview
-        </button>
-        <button class="sb-launcher-btn" [class.active]="wins['grabador']"
-          (click)="toggleWindow('grabador')" title="Grabador de voz">
-          <span>🎤</span> Grabador
-        </button>
-        <button class="sb-launcher-btn" [class.active]="wins['karaoke']"
-          (click)="toggleWindow('karaoke')" title="Karaoke en vivo">
-          <span>🎙</span> Karaoke
-        </button>
-        <button class="sb-launcher-btn" [class.active]="wins['pianoAdv']"
-          (click)="toggleWindow('pianoAdv')" title="Piano Roll avanzado">
-          <span>🎹</span> Piano Pro
-        </button>
-        <button class="sb-launcher-btn" [class.active]="wins['pianoSim']"
-          (click)="toggleWindow('pianoSim')" title="Piano Roll simple">
-          <span>🎵</span> Piano Simple
-        </button>
-        <button class="sb-launcher-btn" [class.active]="wins['mixer']"
-          (click)="toggleWindow('mixer')" title="Mixer de pistas">
-          <span>🎚</span> Mixer
-        </button>
-        <button class="sb-launcher-btn" [class.active]="wins['mezclas']"
-          (click)="toggleWindow('mezclas')" title="Mezclas guardadas">
-          <span>📂</span> Mezclas
-        </button>
-      </div>
-
-      <!-- Track count -->
-      <div class="sb-footer">
-        {{ pistas.filter(p => p.segmentos.length > 0).length }} pistas con clips
-      </div>
-
-    </aside>
-
     <!-- ── WORKSPACE (timeline + floating windows) ── -->
     <div class="daw-workspace">
 
