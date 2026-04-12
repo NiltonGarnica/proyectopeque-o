@@ -5,9 +5,7 @@
   flex-direction: column;
   height: 100%;
   background: rgba(5, 12, 26, 0.6);
-  border-radius: 8px;
   overflow: hidden;
-  gap: 0;
 }
 
 .sm-empty {
@@ -19,30 +17,18 @@
   font-size: 0.78em;
 }
 
-/* Channels strip */
 .sm-channels {
   display: flex;
   flex-direction: row;
-  gap: 6px;
-  padding: 8px 8px 6px;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px;
   overflow-x: auto;
   overflow-y: hidden;
-  flex-shrink: 0;
+  height: 100%;
   scrollbar-width: thin;
   scrollbar-color: rgba(56,189,248,0.2) transparent;
 }
 
 .sm-channels::-webkit-scrollbar { height: 5px; }
 .sm-channels::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.2); border-radius: 3px; }
-.sm-channels::-webkit-scrollbar-track { background: transparent; }
-
-/* FX panel area */
-.sm-fx-area {
-  padding: 0 8px 8px;
-  animation: fx-slide-in 0.18s ease;
-}
-
-@keyframes fx-slide-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
