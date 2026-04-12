@@ -1,6 +1,7 @@
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
+import { Sampler, Offline, loaded } from 'tone';
 import { AuthService } from '../services/auth.service';
 import { StudioBusService } from '../services/studio-bus.service';
 import { Pista, EfectosPista, Segmento, Pattern } from '../audio-timeline/audio-timeline';
@@ -9,6 +10,19 @@ import { PianoNote } from '../audio-piano-roll/audio-piano-roll';
 const API = 'https://proyectopeque-o.onrender.com';
 
 const COLORS = ['#3b82f6','#ec4899','#f59e0b','#10b981','#8b5cf6','#ef4444','#06b6d4','#84cc16'];
+
+const NOTE_NAMES_S = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const PIANO_BASE   = 'https://tonejs.github.io/audio/salamander/';
+const PIANO_URLS: Record<string,string> = {
+  A0:'A0.mp3',C1:'C1.mp3','D#1':'Ds1.mp3','F#1':'Fs1.mp3',
+  A1:'A1.mp3',C2:'C2.mp3','D#2':'Ds2.mp3','F#2':'Fs2.mp3',
+  A2:'A2.mp3',C3:'C3.mp3','D#3':'Ds3.mp3','F#3':'Fs3.mp3',
+  A3:'A3.mp3',C4:'C4.mp3','D#4':'Ds4.mp3','F#4':'Fs4.mp3',
+  A4:'A4.mp3',C5:'C5.mp3','D#5':'Ds5.mp3','F#5':'Fs5.mp3',
+  A5:'A5.mp3',C6:'C6.mp3','D#6':'Ds6.mp3','F#6':'Fs6.mp3',
+  A6:'A6.mp3',C7:'C7.mp3','D#7':'Ds7.mp3','F#7':'Fs7.mp3',
+  A7:'A7.mp3',C8:'C8.mp3',
+};
 
 interface MezclaGuardada {
   _id: string;
@@ -512,6 +526,45 @@ export class AudioStudio implements OnInit, OnDestroy {
     }
   }
 
+  // ---- PATTERN RENDERING ----
+
+  private midiToNoteName(pitch: number): string {
+    return NOTE_NAMES_S[pitch % 12] + (Math.floor(pitch / 12) - 1);
+  }
+
+  private getPatternSamplerCfg(inst: string) {
+    if (inst === 'guitar')
+      return { urls: {'A2':'A2.mp3','A3':'A3.mp3','A4':'A4.mp3','B2':'B2.mp3','B3':'B3.mp3','C3':'C3.mp3','C4':'C4.mp3','C5':'C5.mp3','D3':'D3.mp3','D4':'D4.mp3','D5':'D5.mp3','E2':'E2.mp3','E3':'E3.mp3','E4':'E4.mp3','F3':'F3.mp3','F4':'F4.mp3','G2':'G2.mp3','G3':'G3.mp3','G4':'G4.mp3'}, baseUrl:'https://nbrosowsky.github.io/tonejs-instruments/samples/guitar-acoustic/', release:1.2 };
+    if (inst === 'guitar-electric')
+      return { urls: {'A2':'A2.mp3','A3':'A3.mp3','A4':'A4.mp3','A5':'A5.mp3','C3':'C3.mp3','C4':'C4.mp3','C5':'C5.mp3','C6':'C6.mp3','C#2':'Cs2.mp3','D#3':'Ds3.mp3','D#4':'Ds4.mp3','D#5':'Ds5.mp3','E2':'E2.mp3','F#2':'Fs2.mp3','F#3':'Fs3.mp3','F#4':'Fs4.mp3','F#5':'Fs5.mp3'}, baseUrl:'https://nbrosowsky.github.io/tonejs-instruments/samples/guitar-electric/', release:1.0 };
+    if (inst === 'bass')
+      return { urls: {'A#1':'As1.mp3','A#2':'As2.mp3','A#3':'As3.mp3','A#4':'As4.mp3','C#1':'Cs1.mp3','C#2':'Cs2.mp3','C#3':'Cs3.mp3','C#4':'Cs4.mp3','C#5':'Cs5.mp3','E1':'E1.mp3','E2':'E2.mp3','E3':'E3.mp3','E4':'E4.mp3','G1':'G1.mp3','G2':'G2.mp3','G3':'G3.mp3','G4':'G4.mp3'}, baseUrl:'https://nbrosowsky.github.io/tonejs-instruments/samples/bass-electric/', release:1.5 };
+    return { urls: PIANO_URLS, baseUrl: PIANO_BASE, release: 1.5 };
+  }
+
+  /** Offline-render a Pattern's notes to an AudioBuffer in the given context. */
+  private async renderPatternToBuffer(pattern: Pattern, ctx: AudioContext): Promise<AudioBuffer | null> {
+    const valid = (pattern.notas as PianoNote[]).filter(n => n.duration > 0);
+    if (!valid.length) return null;
+    const spb      = 60 / pattern.bpm;
+    const totalSec = Math.max(...valid.map(n => (n.start + n.duration) * spb)) + 1.5;
+    const cfg      = this.getPatternSamplerCfg(pattern.instrumento);
+
+    const toneBuffer = await Offline(async () => {
+      const s = new Sampler({ urls: cfg.urls, release: cfg.release, baseUrl: cfg.baseUrl }).toDestination();
+      await loaded();
+      for (const note of valid) {
+        s.triggerAttackRelease(this.midiToNoteName(note.pitch), note.duration * spb, note.start * spb, note.velocity);
+      }
+    }, totalSec, 2);
+
+    // Copy data into a buffer that belongs to the playback AudioContext
+    const src: any = (toneBuffer as any).get?.() ?? toneBuffer;
+    const dst = ctx.createBuffer(src.numberOfChannels, src.length, src.sampleRate);
+    for (let ch = 0; ch < src.numberOfChannels; ch++) dst.getChannelData(ch).set(src.getChannelData(ch));
+    return dst;
+  }
+
   // ---- PLAYBACK ----
 
   async mezclarYReproducir() {
@@ -528,24 +581,36 @@ export class AudioStudio implements OnInit, OnDestroy {
       const ctx = new AudioContext();
       this.audioContext = ctx;
 
-      // Flatten all segments with their parent pista info (skip pattern blocks)
+      // ── Collect audio segments (skip patterns)
       type SegInfo = { seg: Segmento; pistaOrigIdx: number };
       const allSegs: SegInfo[] = [];
+      const patternSegs: SegInfo[] = [];
       for (const pista of activas) {
         const origIdx = this.pistas.indexOf(pista);
         for (const seg of pista.segmentos) {
-          if (seg.tipo === 'pattern') continue;
-          allSegs.push({ seg, pistaOrigIdx: origIdx });
+          if (seg.tipo === 'pattern') {
+            const pat = this.patterns.find(p => p.id === seg.patternId);
+            if (pat && pat.notas.length) patternSegs.push({ seg, pistaOrigIdx: origIdx });
+          } else {
+            allSegs.push({ seg, pistaOrigIdx: origIdx });
+          }
         }
       }
 
-      const buffers = await Promise.all(allSegs.map(async ({ seg }) => {
-        const res = await fetch(seg.url, { mode: 'cors' });
-        const ab = await res.arrayBuffer();
-        return new Promise<AudioBuffer>((resolve, reject) => {
-          ctx.decodeAudioData(ab, resolve, reject);
-        });
-      }));
+      // ── Fetch audio + render patterns in parallel
+      if (patternSegs.length) this.mensajeExport = 'Renderizando patterns…';
+
+      const [audioBuffers, patternBuffers] = await Promise.all([
+        Promise.all(allSegs.map(async ({ seg }) => {
+          const res = await fetch(seg.url, { mode: 'cors' });
+          const ab = await res.arrayBuffer();
+          return new Promise<AudioBuffer>((resolve, reject) => { ctx.decodeAudioData(ab, resolve, reject); });
+        })),
+        Promise.all(patternSegs.map(({ seg }) => {
+          const pat = this.patterns.find(p => p.id === seg.patternId)!;
+          return this.renderPatternToBuffer(pat, ctx);
+        })),
+      ]);
 
       this.mensajeExport = '';
 
@@ -565,21 +630,18 @@ export class AudioStudio implements OnInit, OnDestroy {
 
       const promises: Promise<void>[] = [];
 
+      // ── Schedule audio clips
       allSegs.forEach(({ seg, pistaOrigIdx }, i) => {
         const chain = chainMap.get(pistaOrigIdx);
         if (!chain) return;
-
         const segEnd = seg.startTime + seg.duration - seg.trimStart - seg.trimEnd;
         if (segEnd <= startFrom) return;
-
         const src = ctx.createBufferSource();
-        src.buffer = buffers[i];
+        src.buffer = audioBuffers[i];
         src.playbackRate.value = this.velocidad;
         this.liveSources.push(src);
         src.connect(chain.input);
-
         let when: number, offset: number, duration: number;
-
         if (seg.startTime >= startFrom) {
           when = ctxStart + (seg.startTime - startFrom);
           offset = seg.trimStart;
@@ -590,10 +652,39 @@ export class AudioStudio implements OnInit, OnDestroy {
           offset = seg.trimStart + seekInto;
           duration = seg.duration - offset - seg.trimEnd;
         }
-
         if (duration <= 0) return;
         src.start(when, offset, duration);
         promises.push(new Promise(resolve => src.addEventListener('ended', () => resolve(), { once: true })));
+      });
+
+      // ── Schedule pattern buffers
+      patternSegs.forEach(({ seg, pistaOrigIdx }, i) => {
+        const buf = patternBuffers[i];
+        if (!buf) return;
+        const chain = chainMap.get(pistaOrigIdx);
+        if (!chain) return;
+        const segEnd = seg.startTime + seg.duration;
+        if (segEnd <= startFrom) return;
+        const bSrc = ctx.createBufferSource();
+        bSrc.buffer = buf;
+        bSrc.playbackRate.value = this.velocidad;
+        this.liveSources.push(bSrc);
+        bSrc.connect(chain.input);
+        let when: number, offset: number, duration: number;
+        if (seg.startTime >= startFrom) {
+          when = ctxStart + (seg.startTime - startFrom);
+          offset = 0;
+          duration = buf.duration;
+        } else {
+          const seekInto = startFrom - seg.startTime;
+          if (seekInto >= buf.duration) return;
+          when = ctxStart;
+          offset = seekInto;
+          duration = buf.duration - seekInto;
+        }
+        if (duration <= 0) return;
+        bSrc.start(when, offset, duration);
+        promises.push(new Promise(resolve => bSrc.addEventListener('ended', () => resolve(), { once: true })));
       });
 
       this.playheadInterval = setInterval(() => {
@@ -650,37 +741,52 @@ export class AudioStudio implements OnInit, OnDestroy {
       const audioCtx = new AudioContext();
 
       const allSegs: { seg: Segmento; efectos: EfectosPista }[] = [];
+      const patSegs:  { seg: Segmento; efectos: EfectosPista }[] = [];
       for (const pista of activas) {
         for (const seg of pista.segmentos) {
-          if (seg.tipo === 'pattern') continue;
-          allSegs.push({ seg, efectos: pista.efectos });
+          if (seg.tipo === 'pattern') {
+            const pat = this.patterns.find(p => p.id === seg.patternId);
+            if (pat && pat.notas.length) patSegs.push({ seg, efectos: pista.efectos });
+          } else {
+            allSegs.push({ seg, efectos: pista.efectos });
+          }
         }
       }
 
-      const buffers = await Promise.all(allSegs.map(async ({ seg }) => {
-        const res = await fetch(seg.url, { mode: 'cors' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const ab = await res.arrayBuffer();
-        return new Promise<AudioBuffer>((resolve, reject) => {
-          audioCtx.decodeAudioData(ab, resolve, reject);
-        });
-      }));
+      if (patSegs.length) this.mensajeExport = 'Renderizando patterns…';
+
+      const [audioBuffers, patBuffers] = await Promise.all([
+        Promise.all(allSegs.map(async ({ seg }) => {
+          const res = await fetch(seg.url, { mode: 'cors' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const ab = await res.arrayBuffer();
+          return new Promise<AudioBuffer>((resolve, reject) => { audioCtx.decodeAudioData(ab, resolve, reject); });
+        })),
+        Promise.all(patSegs.map(({ seg }) => {
+          const pat = this.patterns.find(p => p.id === seg.patternId)!;
+          return this.renderPatternToBuffer(pat, audioCtx);
+        })),
+      ]);
       audioCtx.close();
 
-      const sampleRate = buffers[0].sampleRate;
-      const totalSec = Math.max(...allSegs.map(({ seg }, i) =>
-        seg.startTime + buffers[i].duration - seg.trimStart - seg.trimEnd
-      ));
+      const allBufs  = [...audioBuffers, ...patBuffers.filter((b): b is AudioBuffer => !!b)];
+      const allItems = [
+        ...allSegs.map((s, i) => ({ seg: s.seg, efectos: s.efectos, buf: audioBuffers[i], offset: s.seg.trimStart, dur: s.seg.duration - s.seg.trimStart - s.seg.trimEnd })),
+        ...patSegs.map((s, i) => patBuffers[i] ? { seg: s.seg, efectos: s.efectos, buf: patBuffers[i]!, offset: 0, dur: patBuffers[i]!.duration } : null).filter(Boolean) as any[],
+      ];
+
+      if (!allBufs.length) { this.exportando = false; this.mensajeExport = ''; return; }
+      const sampleRate = allBufs[0].sampleRate;
+      const totalSec   = Math.max(...allItems.map(it => it.seg.startTime + it.dur));
 
       this.mensajeExport = 'Mezclando pistas...';
       const offline = new OfflineAudioContext(2, Math.ceil(totalSec * sampleRate), sampleRate);
 
-      allSegs.forEach(({ seg, efectos }, i) => {
+      allItems.forEach(({ seg, efectos, buf, offset, dur }) => {
         const src = offline.createBufferSource();
-        src.buffer = buffers[i];
+        src.buffer = buf;
         this.aplicarEfectosOffline(offline, src, efectos);
-        const dur = seg.duration - seg.trimStart - seg.trimEnd;
-        src.start(seg.startTime, seg.trimStart, dur);
+        src.start(seg.startTime, offset, dur);
       });
 
       const rendered = await offline.startRendering();
