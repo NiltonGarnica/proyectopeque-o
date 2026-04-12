@@ -25,6 +25,9 @@ import { Nav } from './nav/nav';
 import { Particles } from './particles/particles';
 import { AudioPianoRoll } from './audio-piano-roll/audio-piano-roll';
 import { StudioWindow } from './studio-window/studio-window';
+import { MixerChannel } from './mixer-channel/mixer-channel';
+import { MixerFxPanel } from './mixer-fx-panel/mixer-fx-panel';
+import { StudioMixer } from './studio-mixer/studio-mixer';
 
 @NgModule({
   declarations: [
@@ -33,6 +36,9 @@ import { StudioWindow } from './studio-window/studio-window';
     Particles,
     AudioPianoRoll,
     StudioWindow,
+    MixerChannel,
+    MixerFxPanel,
+    StudioMixer,
     LoginComponent,
     DashboardComponent,
     Register,

@@ -1,0 +1,55 @@
+<div class="mc-strip"
+     [class.mc-muted]="!pista.activa"
+     [class.mc-solo]="isSolo"
+     [class.mc-fx-open]="fxOpen"
+     [style.--tc]="pista.color">
+
+  <!-- Color accent bar -->
+  <div class="mc-color-bar"></div>
+
+  <!-- Track name -->
+  <div class="mc-name" [title]="pista.nombre">{{ pista.nombre }}</div>
+
+  <!-- Button row -->
+  <div class="mc-btns">
+    <button class="mc-btn"
+      [class.mc-btn-active]="!pista.activa"
+      (click)="toggleMute.emit(pista)"
+      [title]="pista.activa ? 'Mute' : 'Activar'">
+      {{ pista.activa ? '🔊' : '🔇' }}
+    </button>
+    <button class="mc-btn mc-btn-s"
+      [class.mc-btn-active]="isSolo"
+      (click)="toggleSolo.emit(index)"
+      title="Solo">S</button>
+    <button class="mc-btn mc-btn-fx"
+      [class.mc-btn-active]="fxOpen"
+      (click)="toggleFx.emit(index)"
+      title="Abrir FX">FX</button>
+    <button class="mc-btn mc-btn-del"
+      (click)="eliminar.emit(index)"
+      title="Eliminar pista">✕</button>
+  </div>
+
+  <!-- Vertical volume fader -->
+  <div class="mc-fader-area">
+    <div class="mc-fader-wrap">
+      <input
+        class="mc-fader"
+        type="range" min="0" max="2" step="0.01"
+        [(ngModel)]="pista.efectos.volumen"
+        (input)="emit('vol')">
+    </div>
+    <div class="mc-vol-val">{{ (pista.efectos.volumen * 100).toFixed(0) }}</div>
+  </div>
+
+  <!-- Playback level indicator -->
+  <div class="mc-level" [class.mc-level-on]="reproduciendo && pista.activa">
+    <div class="mc-level-bar"></div>
+    <div class="mc-level-bar"></div>
+    <div class="mc-level-bar"></div>
+  </div>
+
+  <!-- Clip count badge -->
+  <div class="mc-badge">{{ pista.segmentos.length }}</div>
+</div>

@@ -1,0 +1,54 @@
+<div class="fx-panel" [style.--tc]="pista.color">
+  <div class="fx-panel-header">
+    <div class="fx-panel-dot" [style.background]="pista.color"></div>
+    <span class="fx-panel-name">{{ pista.nombre }}</span>
+    <span class="fx-panel-title">— FX Chain</span>
+    <button class="fx-close-btn" (click)="close.emit()">✕</button>
+  </div>
+
+  <div class="fx-rows">
+    <!-- Volume -->
+    <div class="fx-row">
+      <span class="fx-row-label">Vol</span>
+      <input class="fx-slider" type="range" min="0" max="2" step="0.01"
+        [(ngModel)]="pista.efectos.volumen" (input)="emit('vol')">
+      <span class="fx-row-val">{{ (pista.efectos.volumen * 100).toFixed(0) }}%</span>
+    </div>
+
+    <!-- Graves (Low Shelf EQ) -->
+    <div class="fx-row">
+      <span class="fx-row-label">Graves</span>
+      <input class="fx-slider fx-slider-eq" type="range" min="-12" max="12" step="1"
+        [(ngModel)]="pista.efectos.graves" (input)="emit('graves')">
+      <span class="fx-row-val" [class.fx-pos]="pista.efectos.graves > 0" [class.fx-neg]="pista.efectos.graves < 0">
+        {{ pista.efectos.graves > 0 ? '+' : '' }}{{ pista.efectos.graves }}dB
+      </span>
+    </div>
+
+    <!-- Agudos (High Shelf EQ) -->
+    <div class="fx-row">
+      <span class="fx-row-label">Agudos</span>
+      <input class="fx-slider fx-slider-eq" type="range" min="-12" max="12" step="1"
+        [(ngModel)]="pista.efectos.agudos" (input)="emit('agudos')">
+      <span class="fx-row-val" [class.fx-pos]="pista.efectos.agudos > 0" [class.fx-neg]="pista.efectos.agudos < 0">
+        {{ pista.efectos.agudos > 0 ? '+' : '' }}{{ pista.efectos.agudos }}dB
+      </span>
+    </div>
+
+    <!-- Eco (Delay) -->
+    <div class="fx-row">
+      <span class="fx-row-label">Eco</span>
+      <input class="fx-slider fx-slider-delay" type="range" min="0" max="1" step="0.01"
+        [(ngModel)]="pista.efectos.eco" (input)="emit('eco')">
+      <span class="fx-row-val">{{ (pista.efectos.eco * 100).toFixed(0) }}%</span>
+    </div>
+
+    <!-- Reverb -->
+    <div class="fx-row">
+      <span class="fx-row-label">Reverb</span>
+      <input class="fx-slider fx-slider-reverb" type="range" min="0" max="1" step="0.01"
+        [(ngModel)]="pista.efectos.reverb" (input)="emit('reverb')">
+      <span class="fx-row-val">{{ (pista.efectos.reverb * 100).toFixed(0) }}%</span>
+    </div>
+  </div>
+</div>

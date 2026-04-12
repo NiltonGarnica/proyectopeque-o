@@ -173,65 +173,20 @@
       <!-- 🎚 MIXER -->
       <app-studio-window
         title="Mixer" icon="🎚"
-        [initialX]="30" [initialY]="30" [initialW]="860" [initialH]="240"
-        [minW]="400" [minH]="160"
+        [initialX]="30" [initialY]="30" [initialW]="860" [initialH]="280"
+        [minW]="420" [minH]="200"
         [visible]="wins['mixer']" [zIndex]="wZ['mixer']"
         (focused)="focusWindow('mixer')"
         (closed)="closeWindow('mixer')">
-        <div class="win-mixer-body">
-          <div *ngIf="!hasClips" class="win-empty-msg">No hay pistas con clips aún.</div>
-          <div class="mixer-channels" *ngIf="hasClips">
-            <ng-container *ngFor="let p of pistas; let i = index">
-              <div class="mixer-channel"
-                *ngIf="p.segmentos.length > 0"
-                [class.muted]="!p.activa"
-                [style.border-top-color]="p.color">
-                <div class="channel-name" title="{{ p.nombre }}">{{ p.nombre }}</div>
-                <div class="channel-btns">
-                  <button class="btn-icon" (click)="previsualizarPistaObj(p)" title="Preview">👁</button>
-                  <button class="btn-icon" [class.btn-muted]="!p.activa" (click)="togglePista(p)">
-                    {{ p.activa ? '🔊' : '🔇' }}
-                  </button>
-                  <button class="btn-icon btn-icon-dup" (click)="duplicarPista(p)" title="Duplicar">📋</button>
-                  <button class="btn-icon btn-icon-del" (click)="eliminarPista(i)" title="Eliminar">✕</button>
-                </div>
-                <div class="live-dot" *ngIf="reproduciendo && p.activa"></div>
-                <div class="channel-faders">
-                  <div class="fader-col">
-                    <span class="fader-label">Vol</span>
-                    <input class="fader-v" type="range" min="0" max="2" step="0.05"
-                      [(ngModel)]="p.efectos.volumen" (input)="updateLiveVolumen(i,p.efectos)">
-                    <span class="fader-val">{{ (p.efectos.volumen*100).toFixed(0) }}</span>
-                  </div>
-                  <div class="fader-col">
-                    <span class="fader-label">Grav</span>
-                    <input class="fader-v" type="range" min="-12" max="12" step="1"
-                      [(ngModel)]="p.efectos.graves" (input)="updateLiveGraves(i,p.efectos)">
-                    <span class="fader-val">{{ p.efectos.graves }}</span>
-                  </div>
-                  <div class="fader-col">
-                    <span class="fader-label">Agud</span>
-                    <input class="fader-v" type="range" min="-12" max="12" step="1"
-                      [(ngModel)]="p.efectos.agudos" (input)="updateLiveAgudos(i,p.efectos)">
-                    <span class="fader-val">{{ p.efectos.agudos }}</span>
-                  </div>
-                  <div class="fader-col">
-                    <span class="fader-label">Eco</span>
-                    <input class="fader-v" type="range" min="0" max="1" step="0.05"
-                      [(ngModel)]="p.efectos.eco" (input)="updateLiveEco(i,p.efectos)">
-                    <span class="fader-val">{{ (p.efectos.eco*100).toFixed(0) }}</span>
-                  </div>
-                  <div class="fader-col">
-                    <span class="fader-label">Rev</span>
-                    <input class="fader-v" type="range" min="0" max="1" step="0.05"
-                      [(ngModel)]="p.efectos.reverb" (input)="updateLiveReverb(i,p.efectos)">
-                    <span class="fader-val">{{ (p.efectos.reverb*100).toFixed(0) }}</span>
-                  </div>
-                </div>
-              </div>
-            </ng-container>
-          </div>
-        </div>
+        <app-studio-mixer
+          [pistas]="pistas"
+          [reproduciendo]="reproduciendo"
+          (liveUpdate)="onMixerLiveUpdate($event)"
+          (togglePista)="togglePista($event)"
+          (eliminar)="eliminarPista($event)"
+          (duplicar)="duplicarPista($event)"
+          (preview)="previsualizarPistaObj($event)">
+        </app-studio-mixer>
       </app-studio-window>
 
       <!-- 📂 MEZCLAS GUARDADAS -->

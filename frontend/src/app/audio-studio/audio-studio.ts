@@ -557,6 +557,16 @@ export class AudioStudio implements OnInit, OnDestroy {
     }
   }
 
+  onMixerLiveUpdate(ev: { type: string; i: number; ef: EfectosPista }) {
+    switch (ev.type) {
+      case 'vol':    this.updateLiveVolumen(ev.i, ev.ef); break;
+      case 'graves': this.updateLiveGraves(ev.i, ev.ef);  break;
+      case 'agudos': this.updateLiveAgudos(ev.i, ev.ef);  break;
+      case 'eco':    this.updateLiveEco(ev.i, ev.ef);     break;
+      case 'reverb': this.updateLiveReverb(ev.i, ev.ef);  break;
+    }
+  }
+
   updateLiveVelocidad() {
     if (!this.audioContext) return;
     const t = this.audioContext.currentTime;

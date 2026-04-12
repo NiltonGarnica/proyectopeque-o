@@ -1,0 +1,37 @@
+<div class="sm-root">
+
+  <!-- Empty state -->
+  <div class="sm-empty" *ngIf="!hasPistas">
+    <span>No hay pistas con clips aún.</span>
+  </div>
+
+  <!-- Channels row -->
+  <div class="sm-channels" *ngIf="hasPistas">
+    <app-mixer-channel
+      *ngFor="let item of activePistas"
+      [pista]="item.pista"
+      [index]="item.index"
+      [reproduciendo]="reproduciendo"
+      [isSolo]="soloSet.has(item.index)"
+      [fxOpen]="fxChannel === item.index"
+      (liveUpdate)="onLiveUpdate($event)"
+      (toggleMute)="onToggleMute($event)"
+      (toggleSolo)="onToggleSolo($event)"
+      (toggleFx)="onToggleFx($event)"
+      (eliminar)="eliminar.emit($event)"
+      (duplicar)="duplicar.emit($event)"
+      (preview)="preview.emit($event)">
+    </app-mixer-channel>
+  </div>
+
+  <!-- FX Panel (shown at bottom when a channel has FX open) -->
+  <div class="sm-fx-area" *ngIf="fxPista">
+    <app-mixer-fx-panel
+      [pista]="fxPista"
+      [index]="fxChannel!"
+      (liveUpdate)="onLiveUpdate($event)"
+      (close)="onFxClose()">
+    </app-mixer-fx-panel>
+  </div>
+
+</div>
