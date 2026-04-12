@@ -223,7 +223,15 @@ export class AudioStudio implements OnInit, OnDestroy {
     return this.pistas.some(p => p.activa && p.segmentos.length > 0);
   }
 
-  ngOnDestroy() { this.detenerTodas(); this.detenerKaraoke(); this.busSub?.unsubscribe(); }
+  ngOnDestroy() {
+    this.detenerTodas();
+    this.detenerKaraoke();
+    this.busSub?.unsubscribe();
+    if (this.karaokeUrlLocal?.startsWith('blob:')) {
+      URL.revokeObjectURL(this.karaokeUrlLocal);
+      this.karaokeUrlLocal = '';
+    }
+  }
 
   private nextColor(): string { return COLORS[this.colorIdx++ % COLORS.length]; }
   private nextSegId(): number { return ++this.segCounter; }
@@ -347,33 +355,55 @@ export class AudioStudio implements OnInit, OnDestroy {
   }
 
   detenerKaraoke() {
-    // Detener recorder si sigue activo
+    // Stop recorder first so onstop fires and flushes chunks
     if (this.karaokeGrabando) {
       try { this.karaokeRecorder?.stop(); } catch {}
       this.karaokeGrabando = false;
     }
+    // Detach recorder handlers to prevent further callbacks
+    if (this.karaokeRecorder) {
+      this.karaokeRecorder.ondataavailable = null;
+      // onstop is kept so guardarGrabacionKaraoke() still fires
+      this.karaokeRecorder = null;
+    }
 
-    // Apagar el micrófono inmediatamente (quita el indicador del navegador)
+    // Stop microphone tracks (removes browser mic indicator)
     try { this.karaokeStream?.getTracks().forEach(t => t.stop()); } catch {}
     this.karaokeStream = null;
 
-    // Desconectar el grafo de audio
+    // Disconnect audio source from graph
     try { this.karaokeSource?.disconnect(); } catch {}
     this.karaokeSource = null;
 
-    this.karaokeChain = null;
+    // Disconnect all chain nodes to release references
+    if (this.karaokeChain) {
+      const c = this.karaokeChain as any;
+      ['input','gain','bass','treble','ecoWet','reverbWet'].forEach(k => {
+        try { c[k]?.disconnect(); } catch {}
+      });
+      this.karaokeChain = null;
+    }
     this.karaokeCaptureDest = null;
-    this.karaokeActivo = false;
-    this.karaokeError = '';
 
-    // Cerrar el contexto con un pequeño delay para que el recorder termine de volcar datos
+    // Free any leftover chunks (if stop was called before recording)
+    this.karaokeChunks = [];
+
+    this.karaokeActivo = false;
+    this.karaokeError  = '';
+
+    // Close context with small delay so the recorder onstop event can still fire
     const ctx = this.karaokeCtx;
     this.karaokeCtx = null;
-    setTimeout(() => { try { ctx?.close(); } catch {} }, 400);
+    setTimeout(() => { try { ctx?.close(); } catch {} }, 500);
   }
 
   iniciarGrabacionKaraoke() {
     if (!this.karaokeCaptureDest || this.karaokeGrabando) return;
+    // Revoke previous blob URL before starting a new recording
+    if (this.karaokeUrlLocal?.startsWith('blob:')) {
+      URL.revokeObjectURL(this.karaokeUrlLocal);
+      this.karaokeUrlLocal = '';
+    }
     this.karaokeChunks = [];
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus' : 'audio/webm';
@@ -393,15 +423,19 @@ export class AudioStudio implements OnInit, OnDestroy {
 
   private async guardarGrabacionKaraoke() {
     const blob = new Blob(this.karaokeChunks, { type: 'audio/webm' });
-    const num = this.pistas.length + 1;
+    // ── Free chunk memory immediately — blob already owns the data
+    this.karaokeChunks = [];
+
+    const num    = this.pistas.length + 1;
     const nombre = `Karaoke ${num}`;
-    // Add immediately with local blob URL so user can use it right away
+
     const localUrl = URL.createObjectURL(blob);
     const seg = await this.crearSegmento(localUrl, nombre);
     this.zone.run(() => {
       this.karaokeUrlLocal = localUrl;
       this.addSegmentToTrack(nombre, seg, '#8b5cf6');
     });
+
     // Upload in background to make it persistent
     const formData = new FormData();
     formData.append('audio', blob, `karaoke-${Date.now()}.webm`);
@@ -411,9 +445,14 @@ export class AudioStudio implements OnInit, OnDestroy {
         this.zone.run(() => {
           const track = this.pistas.find(p => p.nombre === nombre && p.segmentos[0]?.url === localUrl);
           if (track) { track.segmentos[0].url = res.url; track.segmentos[0].duration = dur; }
+          // Replace local blob URL with server URL and free the blob
+          if (this.karaokeUrlLocal === localUrl) this.karaokeUrlLocal = res.url;
+          URL.revokeObjectURL(localUrl);
         });
       },
-      error: () => {}
+      error: () => {
+        // Keep localUrl alive on error so user can still download
+      }
     });
   }
 
